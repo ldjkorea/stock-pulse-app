@@ -2,9 +2,11 @@ import React, { useEffect } from 'react';
 import { StockAnalysis } from '../../core/types/analysis';
 import { Symbol } from '../../core/types/models';
 import { EnrichedPosition } from '../../stores/portfolioStore';
+import { getMockPriceForSymbol } from '../../mock/mockScenarios';
 import { DetailHeader } from './DetailHeader';
 import { EasyExplanation } from './EasyExplanation';
 import { MyPositionBox } from './MyPositionBox';
+import { RsiSynergyBox } from './RsiSynergyBox';
 import { FactorBars } from './FactorBars';
 import { WhatChanged } from './WhatChanged';
 import { CounterThesisBox } from './CounterThesisBox';
@@ -52,6 +54,14 @@ export const StockDetailView: React.FC<StockDetailViewProps> = ({
       {/* C. 내 상황 (평균매수가, 현재가, 미실현 손익, 비중, 설정 한도 비교 및 분리 안내) */}
       <MyPositionBox
         position={position}
+        scoreLabel={analysis.score_label}
+        symbolName={symbol.name_ko}
+      />
+
+      {/* C-1. 실시간 RSI 수급 타이밍 및 펀더멘털 결합 분석 */}
+      <RsiSynergyBox
+        priceSnapshot={position?.price_snapshot || getMockPriceForSymbol(symbol.id)}
+        totalScore={analysis.total_score}
         scoreLabel={analysis.score_label}
         symbolName={symbol.name_ko}
       />

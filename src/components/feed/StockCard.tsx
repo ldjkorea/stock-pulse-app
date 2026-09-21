@@ -2,6 +2,7 @@ import React from 'react';
 import { ArrowUpRight, ArrowDownRight, Minus, ChevronRight, AlertCircle } from 'lucide-react';
 import { EnrichedPosition } from '../../stores/portfolioStore';
 import { ScoreBadge, TrustBadge } from '../common/Badge';
+import { RsiBadge } from '../common/RsiBadge';
 import { SUPPORTED_SYMBOLS } from '../../mock/symbols';
 
 interface StockCardProps {
@@ -89,6 +90,19 @@ export const StockCard: React.FC<StockCardProps> = ({ item, onClick }) => {
           {headline}
         </p>
       </div>
+
+      {/* 2-1. 실시간 기술적 수급 타이밍 (RSI) 뱃지 */}
+      {item.price_snapshot?.rsi !== undefined && (
+        <div className="mb-3">
+          <RsiBadge
+            rsi={item.price_snapshot.rsi}
+            status={item.price_snapshot.rsi_status}
+            hint={item.price_snapshot.rsi_hint}
+            size="sm"
+            showHint={true}
+          />
+        </div>
+      )}
 
       {/* 3. 내 상황 영역 (평균매수가, 현재가, 평가손익, 포트폴리오 비중) */}
       <div className="pt-3 border-t border-slate-100 dark:border-slate-800/80">

@@ -4,6 +4,7 @@ import { EnrichedPosition } from '../../stores/portfolioStore';
 import { Position } from '../../core/types/models';
 import { SUPPORTED_SYMBOLS } from '../../mock/symbols';
 import { SmartImportModal } from './SmartImportModal';
+import { RsiBadge } from '../common/RsiBadge';
 
 interface PortfolioManageViewProps {
   positions: EnrichedPosition[];
@@ -361,6 +362,16 @@ export const PortfolioManageView: React.FC<PortfolioManageViewProps> = ({
                   <span className="text-xs font-mono text-slate-400">
                     {sym?.ticker || pos.symbol_id}
                   </span>
+                  {pos.price_snapshot?.rsi !== undefined && (
+                    <div className="ml-1">
+                      <RsiBadge
+                        rsi={pos.price_snapshot.rsi}
+                        status={pos.price_snapshot.rsi_status}
+                        size="sm"
+                        showHint={false}
+                      />
+                    </div>
+                  )}
                 </button>
 
                 <div className="flex items-center gap-1">

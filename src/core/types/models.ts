@@ -47,7 +47,7 @@ export interface Position {
   updated_at: string;
 }
 
-// 주가 스냅샷
+// 주가 스냅샷 및 기술적 수급 지표
 export interface PriceSnapshot {
   id: string;
   symbol_id: string;
@@ -56,6 +56,10 @@ export interface PriceSnapshot {
   change_percent: number;
   market_cap_billions: number;
   as_of: string;
+  // 기술적 수급 지표 (RSI)
+  rsi?: number;                                       // 14일 RSI 지표 (0 ~ 100)
+  rsi_status?: 'OVERSOLD' | 'NEUTRAL' | 'OVERBOUGHT'; // 30 이하 과매도, 70 이상 과열, 31~69 중립
+  rsi_hint?: string;                                  // 직관적인 한줄 수급 조언
 }
 
 // 재무 스냅샷 (전문 분석용)
