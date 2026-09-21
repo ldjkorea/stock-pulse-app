@@ -6,18 +6,40 @@ import { ScoreBadge, TrustBadge } from '../common/Badge';
 import { ActionSignalBadge } from '../common/ActionSignalBadge';
 import { calculateActionSignal } from '../../core/utils/actionSignalHelper';
 
+import { EnrichedPosition } from '../../stores/portfolioStore';
+
 interface DetailHeaderProps {
   symbol: Symbol;
   analysis: StockAnalysis;
   onBack: () => void;
   rsiValue?: number;
+  position?: EnrichedPosition;
 }
 
-export const DetailHeader: React.FC<DetailHeaderProps> = ({ symbol, analysis, onBack, rsiValue }) => {
+export const DetailHeader: React.FC<DetailHeaderProps> = ({
+  symbol,
+  analysis,
+  onBack,
+  rsiValue,
+  position,
+}) => {
   const isProfit = (analysis.score_change ?? 0) > 0;
   const isLoss = (analysis.score_change ?? 0) < 0;
 
-  const actionInfo = calculateActionSignal(analysis.total_score, rsiValue);
+  const actionInfo = calculateActionSignal(
+    analysis.total_score,
+    rsiValue,
+    position
+      ? {
+          average_cost: position.average_cost,
+          current_price: position.current_price,
+          unrealized_profit_percent: position.unrealized_profit_percent,
+          portfolio_weight_percent: position.portfolio_weight_percent,
+          target_max_weight_percent: position.target_max_weight_percent,
+          is_over_weight_limit: position.is_over_weight_limit,
+        }
+      : undefined
+  );
 
   return (
     <div className="sticky top-0 z-30 bg-white/95 dark:bg-slate-950/95 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800/80 -mx-4 px-4 py-3 mb-4 space-y-2.5">

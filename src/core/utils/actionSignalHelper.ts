@@ -1,25 +1,119 @@
-import { ActionSignalInfo, TenIndicatorItem } from '../types/analysis';
+import { ActionSignalInfo, ActionSignalLabel, TenIndicatorItem } from '../types/analysis';
 
 /**
- * 1.0~10.0 종합 펀더멘털 점수와 기술적 RSI(14) 수급 지표를 결합하여
- * 5단계 직관적인 투자 행동 제안을 산출합니다.
- * 
- * - 강한 매수 제안 (Strong Buy)
- * - 매수 제안 (Buy)
- * - 보류 / 관망 (Hold)
- * - 매도 제안 (Sell)
- * - 강한 매도 제안 (Strong Sell)
+ * 사용자의 실제 보유 상황 (평균매수가, 수익률, 비중, 한도) 컨텍스트
  */
-export function calculateActionSignal(totalScore: number, rsi?: number): ActionSignalInfo {
+export interface UserPositionContext {
+  average_cost: number;              // 평균매수가
+  current_price: number;             // 현재가
+  unrealized_profit_percent: number; // 미실현 수익률 (%)
+  portfolio_weight_percent: number;  // 현재 보유 비중 (%)
+  target_max_weight_percent?: number;// 목표 최대 비중 한도 (기본 20%)
+  is_over_weight_limit?: boolean;    // 비중 한도 초과 여부
+}
+
+/**
+ * 1.0~10.0 종합 펀더멘털 점수 + 실시간 RSI(14) 수급 지표 + 내 실제 보유 상황(평단가, 수익률, 비중)을
+ * 3차원으로 종합 분석하여 완벽하게 개인화된 5단계 투자 행동 제안을 산출합니다.
+ */
+export function calculateActionSignal(
+  totalScore: number,
+  rsi?: number,
+  userContext?: UserPositionContext
+): ActionSignalInfo {
   const effectiveRsi = rsi !== undefined ? rsi : 50;
 
-  // 1. 강한 매수 제안: 점수 8.5 이상 (또는 점수 7.5 이상이면서 RSI 과매도 35 이하 극단적 저평가)
+  // 사용자 보유 상황 데이터 (있을 경우)
+  const hasPosition = userContext && userContext.average_cost > 0;
+  const pnlPercent = userContext?.unrealized_profit_percent ?? 0;
+  const weight = userContext?.portfolio_weight_percent ?? 0;
+  const maxWeight = userContext?.target_max_weight_percent ?? 20;
+  const isOverweight = userContext?.is_over_weight_limit || weight > maxWeight;
+
+  // -------------------------------------------------------------
+  // [우선순위 1] 포트폴리오 비중 과다 몰빵 리스크 제어
+  // 아무리 좋은 주식이라도 비중 한도를 초과하면 추가 매수 금지 / 보유 또는 비중 조절 유도
+  // -------------------------------------------------------------
+  if (hasPosition && isOverweight) {
+    if (totalScore >= 7.0) {
+      return {
+        signal: 'HOLD',
+        label: '보류',
+        score: totalScore,
+        rsi: rsi,
+        summary_reason: `우량한 기업이나 현재 포트폴리오 비중(${weight}%)이 한도(${maxWeight}%)를 초과했습니다.`,
+        timing_hint: `⚠️ 비중 과다: 추가 매수를 멈추고 목표 비중(${maxWeight}%)까지 신규 자금 유입 시 분산 유지 권장`,
+      };
+    } else {
+      return {
+        signal: 'SELL',
+        label: '매도 제안',
+        score: totalScore,
+        rsi: rsi,
+        summary_reason: `펀더멘털 매력 대비 보유 비중(${weight}%)이 과도하여 계좌 위험 관리가 시급합니다.`,
+        timing_hint: `📉 비중 축소: 리스크 분산을 위해 비중을 ${maxWeight}% 이하로 부분 매도 권장`,
+      };
+    }
+  }
+
+  // -------------------------------------------------------------
+  // [우선순위 2] 대규모 수익 달성 (+20% 이상) + RSI 단기 과열(70 이상)
+  // 펀더멘털이 좋아도 과열권에서는 신규 매수 대신 '부분 익절' 제안
+  // -------------------------------------------------------------
+  if (hasPosition && pnlPercent >= 20 && effectiveRsi >= 70) {
+    return {
+      signal: 'HOLD',
+      label: '보류',
+      score: totalScore,
+      rsi: rsi,
+      summary_reason: `수익률 +${pnlPercent.toFixed(1)}%로 우수한 성과 중이나 단기 RSI가 ${effectiveRsi.toFixed(0)}선으로 과열권입니다.`,
+      timing_hint: `🎉 부분 익절 타이밍: 추가 매수는 보류하고, 일부 차익을 실현해 현금 비중을 챙길 수 있는 기회`,
+    };
+  }
+
+  // -------------------------------------------------------------
+  // [우선순위 3] 손실 구간 (-10% 이하) + 펀더멘털 최상(7.5점 이상) + RSI 과매도(35 이하)
+  // 물려 있지만 기업이 탄탄하고 기술적 바닥일 때 -> "골든타임: 평단 낮추기 분할 물타기"
+  // -------------------------------------------------------------
+  if (hasPosition && pnlPercent <= -10 && totalScore >= 7.5 && effectiveRsi <= 35) {
+    return {
+      signal: 'STRONG_BUY',
+      label: '강한 매수 제안',
+      score: totalScore,
+      rsi: rsi,
+      summary_reason: `현재 -${Math.abs(pnlPercent).toFixed(1)}% 손실 중이나 기업 가치는 견고하며 주가는 극단적 과매도 바닥입니다.`,
+      timing_hint: `🔥 평단가 인하 찬스: 내 평균매수가 대비 저렴해진 최적의 분할 추가 매수(물타기) 골든타임`,
+    };
+  }
+
+  // -------------------------------------------------------------
+  // [우선순위 4] 손실 구간 (-10% 이하) + 펀더멘털 훼손(4.0점 이하)
+  // 물려있다고 버티다가 더 큰 손실을 보지 않도록 손절/교체매매 경고
+  // -------------------------------------------------------------
+  if (hasPosition && pnlPercent <= -10 && totalScore < 4.0) {
+    return {
+      signal: 'STRONG_SELL',
+      label: '강한 매도 제안',
+      score: totalScore,
+      rsi: rsi,
+      summary_reason: `손실 상태(-${Math.abs(pnlPercent).toFixed(1)}%)이지만 기업 펀더멘털이 구조적으로 훼손되었습니다.`,
+      timing_hint: `🚨 과감한 손절 권장: 비자발적 장기보유를 피하고 우량주로 자금을 교체 매매하는 전략 추천`,
+    };
+  }
+
+  // -------------------------------------------------------------
+  // [표준 펀더멘털 + RSI 연동 5단계 판정]
+  // -------------------------------------------------------------
+
+  // 1. 강한 매수 제안
   if (totalScore >= 8.5 || (totalScore >= 7.5 && effectiveRsi <= 35)) {
     let timingHint = '펀더멘털 최상위 & 실적 성장 모멘텀 강력';
     if (effectiveRsi <= 35) {
       timingHint = '🔥 RSI 과매도 반등 국면: 가격 매력도가 극대화된 적극 분할 매수 타이밍';
     } else if (effectiveRsi >= 70) {
       timingHint = '⚠️ 펀더멘털은 최상이나 단기 과열권: 추격 매수보다 눌림목 분할 매수 권장';
+    } else if (hasPosition && weight < 10) {
+      timingHint = `💎 보유 비중(${weight}%)이 낮아 목표 비중까지 적극 확대하기 좋은 구간`;
     } else {
       timingHint = '💎 수급 및 펀더멘털 균형 우수: 중장기 비중 확대 추천';
     }
@@ -34,13 +128,15 @@ export function calculateActionSignal(totalScore: number, rsi?: number): ActionS
     };
   }
 
-  // 2. 매수 제안: 점수 7.0 ~ 8.4 (또는 점수 6.5 이상이면서 RSI 40 이하 양호한 수급)
+  // 2. 매수 제안
   if (totalScore >= 7.0 || (totalScore >= 6.5 && effectiveRsi <= 40)) {
     let timingHint = '실적 및 밸류에이션 매력 우수: 포트폴리오 편입 권장';
     if (effectiveRsi <= 35) {
       timingHint = '🟢 단기 수급 낙폭 과대로 인한 저가 매수 찬스';
     } else if (effectiveRsi >= 70) {
       timingHint = '🟡 단기 상승폭 확대로 관망 후 60선 이하 지지 시 매수 권장';
+    } else if (hasPosition && pnlPercent > 10) {
+      timingHint = `📈 수익 추세(+${pnlPercent.toFixed(1)}%) 진행 중: 지지선 확인 후 불타기 분할 매수 유효`;
     } else {
       timingHint = '✅ 안정적인 수급 흐름 속 정석적인 분할 매수 구간';
     }
@@ -55,13 +151,15 @@ export function calculateActionSignal(totalScore: number, rsi?: number): ActionS
     };
   }
 
-  // 3. 보류 / 관망: 점수 5.0 ~ 6.9
+  // 3. 보류 / 관망
   if (totalScore >= 5.0) {
     let timingHint = '방향성 탐색 구간: 신규 매수나 매도보다 기존 비중 유지 권장';
     if (effectiveRsi >= 70) {
       timingHint = '⚠️ 펀더멘털 대비 단기 과열 조짐: 추가 매수 금지 및 이익 실현 검토';
     } else if (effectiveRsi <= 35) {
       timingHint = '👀 수급 침체권이나 반등 신호 확인 전까지 관망 유지';
+    } else if (hasPosition) {
+      timingHint = `⚖️ 현재 평단가 대비 수익률 ${pnlPercent >= 0 ? '+' : ''}${pnlPercent.toFixed(1)}%: 현 비중(${weight}%) 유지 관망`;
     }
 
     return {
@@ -74,11 +172,13 @@ export function calculateActionSignal(totalScore: number, rsi?: number): ActionS
     };
   }
 
-  // 4. 매도 제안: 점수 3.5 ~ 4.9
+  // 4. 매도 제안
   if (totalScore >= 3.5) {
     let timingHint = '펀더멘털 약화 또는 밸류에이션 부담: 비중 축소 권장';
     if (effectiveRsi >= 70) {
       timingHint = '🚨 단기 과열 반등 시 적극적인 비중 축소 / 차익 실현 기회';
+    } else if (hasPosition && pnlPercent > 0) {
+      timingHint = `⚠️ 이익(+${pnlPercent.toFixed(1)}%) 보존을 위한 분할 매도 추천`;
     } else {
       timingHint = '📉 추가 하락 위험 존재: 포트폴리오 위험 관리 우선';
     }
@@ -93,7 +193,7 @@ export function calculateActionSignal(totalScore: number, rsi?: number): ActionS
     };
   }
 
-  // 5. 강한 매도 제안: 점수 3.5 미만
+  // 5. 강한 매도 제안
   return {
     signal: 'STRONG_SELL',
     label: '강한 매도 제안',

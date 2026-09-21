@@ -45,6 +45,7 @@ export const StockDetailView: React.FC<StockDetailViewProps> = ({
         analysis={analysis}
         onBack={onBack}
         rsiValue={priceSnapshot?.rsi}
+        position={position}
       />
 
       {/* 정정 내역(Correction) 존재 시 최우선 표시 */}

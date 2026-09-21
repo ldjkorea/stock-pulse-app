@@ -28,8 +28,15 @@ export const StockCard: React.FC<StockCardProps> = ({ item, onClick }) => {
 
   const isProfit = item.unrealized_profit_amount >= 0;
 
-  // 5단계 투자 행동 제안 및 RSI 연계 계산
-  const actionInfo = calculateActionSignal(totalScore, item.price_snapshot?.rsi);
+  // 5단계 투자 행동 제안 (펀더멘털 점수 + 실시간 RSI + 내 평단가/수익률/비중 3차원 맞춤 계산)
+  const actionInfo = calculateActionSignal(totalScore, item.price_snapshot?.rsi, {
+    average_cost: item.average_cost,
+    current_price: item.current_price,
+    unrealized_profit_percent: item.unrealized_profit_percent,
+    portfolio_weight_percent: item.portfolio_weight_percent,
+    target_max_weight_percent: item.target_max_weight_percent,
+    is_over_weight_limit: item.is_over_weight_limit,
+  });
 
   return (
     <div
