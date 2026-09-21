@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, ShieldCheck, Key, CheckCircle2, AlertCircle, RefreshCw, ExternalLink, Trash2, Eye, EyeOff } from 'lucide-react';
+import { X, ShieldCheck, Key, CheckCircle2, AlertCircle, RefreshCw, ExternalLink, Trash2, Eye, EyeOff, Laptop } from 'lucide-react';
 import { tossApiService, TossCredentials } from '../../core/services/tossApiService';
 import { Position } from '../../core/types/models';
 
@@ -27,6 +27,8 @@ export const TossApiModal: React.FC<TossApiModalProps> = ({
   } | null>(null);
 
   const [previewPositions, setPreviewPositions] = useState<Position[] | null>(null);
+
+  const isLocal = tossApiService.isLocalEnvironment();
 
   useEffect(() => {
     if (isOpen) {
@@ -148,6 +150,34 @@ export const TossApiModal: React.FC<TossApiModalProps> = ({
 
         {/* 본문 스크롤 영역 */}
         <div className="p-5 overflow-y-auto space-y-4 text-xs">
+          {/* 웹 배포 사이트(GitHub Pages) 접속 시 환경 안내 배너 */}
+          {!isLocal && (
+            <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 space-y-2.5">
+              <div className="flex items-start gap-2.5">
+                <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <span className="font-bold text-amber-950 dark:text-amber-200 block text-xs">
+                    웹 배포 사이트(GitHub Pages) 접속 안내
+                  </span>
+                  <p className="text-[11px] text-amber-900/80 dark:text-amber-300/80 leading-relaxed">
+                    토스증권 Open API는 금융 보안 규정에 따라 웹 브라우저에서의 직접 호출(CORS)을 차단합니다.
+                    현재 PC 백그라운드에 켜져 있는 <strong>로컬 주소(localhost:5173)</strong>로 접속하시면 내장 역방향 프록시를 통해 즉시 정상 연동됩니다!
+                  </p>
+                </div>
+              </div>
+              <a
+                href="http://localhost:5173"
+                target="_blank"
+                rel="noreferrer"
+                className="w-full py-2 px-3 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm transition-all"
+              >
+                <Laptop className="w-4 h-4" />
+                <span>로컬 환경(http://localhost:5173)으로 열기</span>
+                <ExternalLink className="w-3 h-3 ml-0.5" />
+              </a>
+            </div>
+          )}
+
           {/* 보안 안심 알림 배너 */}
           <div className="p-3.5 rounded-2xl bg-blue-50/80 dark:bg-blue-950/40 border border-blue-200/80 dark:border-blue-900/60 flex items-start gap-2.5">
             <ShieldCheck className="w-5 h-5 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
@@ -209,8 +239,8 @@ export const TossApiModal: React.FC<TossApiModalProps> = ({
                 </label>
                 <button
                   type="button"
-                  onClick={() => setShowSecret((prev) => !prev)}
-                  className="text-[10px] text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 flex items-center gap-1"
+                  onClick={() => setShowSecret(!showSecret)}
+                  className="text-[10px] text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 flex items-center gap-1"
                 >
                   {showSecret ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
                   {showSecret ? '숨기기' : '보기'}
@@ -235,7 +265,7 @@ export const TossApiModal: React.FC<TossApiModalProps> = ({
               1. <a href="https://developers.tossinvest.com/docs" target="_blank" rel="noreferrer" className="text-blue-600 dark:text-blue-400 underline inline-flex items-center gap-0.5">토스증권 개발자 포털 <ExternalLink className="w-2.5 h-2.5" /></a>의 <strong>IP 허용 목록</strong>에 현재 접속 중인 공인 IP가 등록되어 있어야 정상 통신됩니다.
             </p>
             <p>
-              2. 로컬 개발 환경(<code>http://localhost:5173</code>)에서 실행 시 브라우저 CORS 차단 없이 가장 안정적으로 통신됩니다.
+              2. 로컬 개발 환경(<code>http://localhost:5173</code>)에서 접속하시면 프록시가 작동하여 CORS 차단 없이 완벽하게 연동됩니다.
             </p>
           </div>
 
@@ -257,9 +287,9 @@ export const TossApiModal: React.FC<TossApiModalProps> = ({
               ) : (
                 <RefreshCw className="w-4 h-4 shrink-0 mt-0.5 animate-spin" />
               )}
-              <div>
+              <div className="flex-1">
                 <span className="font-bold block text-xs">{statusMessage.title}</span>
-                <p className="text-[11px] mt-0.5 leading-relaxed">{statusMessage.description}</p>
+                <p className="text-[11px] mt-0.5 leading-relaxed whitespace-pre-line">{statusMessage.description}</p>
               </div>
             </div>
           )}
@@ -268,27 +298,27 @@ export const TossApiModal: React.FC<TossApiModalProps> = ({
           {previewPositions && previewPositions.length > 0 && (
             <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
               <span className="font-bold text-slate-800 dark:text-slate-200 block text-xs">
-                불러온 내 주식 목록 ({previewPositions.length}개)
+                불러온 계좌 보유 주식 ({previewPositions.length}개)
               </span>
-              <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto p-1">
+              <div className="max-h-40 overflow-y-auto space-y-1.5 pr-1">
                 {previewPositions.map((pos) => (
                   <div
                     key={pos.id}
-                    className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-between"
+                    className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200/60 dark:border-slate-700/60 flex items-center justify-between text-[11px]"
                   >
                     <div>
-                      <span className="font-bold text-slate-900 dark:text-white block text-xs">
+                      <span className="font-bold text-slate-900 dark:text-white">
                         {pos.symbol_id}
                       </span>
-                      <span className="text-[10px] text-slate-400 font-mono">
+                      <span className="ml-1.5 text-slate-400">
                         {pos.quantity}주
                       </span>
                     </div>
-                    <span className="text-xs font-mono font-bold text-slate-800 dark:text-slate-200">
-                      {pos.currency === 'KRW'
-                        ? `₩${Math.round(pos.average_cost).toLocaleString()}`
-                        : `$${pos.average_cost.toFixed(2)}`}
-                    </span>
+                    <div className="text-right">
+                      <span className="font-mono text-slate-600 dark:text-slate-300">
+                        평균 {pos.currency === 'KRW' ? `${pos.average_cost.toLocaleString()}원` : `$${pos.average_cost.toFixed(2)}`}
+                      </span>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -297,41 +327,40 @@ export const TossApiModal: React.FC<TossApiModalProps> = ({
         </div>
 
         {/* 모달 푸터 버튼 */}
-        <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/40 flex items-center justify-end gap-2">
+        <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 flex items-center justify-between gap-3">
           <button
             onClick={onClose}
-            className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 font-bold text-xs text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
           >
             닫기
           </button>
-
-          {previewPositions && previewPositions.length > 0 ? (
-            <button
-              onClick={handleApplyToPortfolio}
-              className="px-5 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold text-xs shadow-md transition-all flex items-center gap-1.5"
-            >
-              <CheckCircle2 className="w-4 h-4" />
-              내 포트폴리오에 적용하기
-            </button>
-          ) : (
+          <div className="flex items-center gap-2">
             <button
               onClick={handleTestAndSync}
-              disabled={isLoading}
-              className="px-5 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs shadow-md transition-all flex items-center gap-1.5 disabled:opacity-50"
+              disabled={isLoading || !clientId.trim() || !clientSecret.trim()}
+              className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-blue-500/20 transition-all cursor-pointer"
             >
               {isLoading ? (
                 <>
                   <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                  연결 확인 중...
+                  <span>연결 중...</span>
                 </>
               ) : (
                 <>
                   <RefreshCw className="w-3.5 h-3.5" />
-                  연결 테스트 & 잔고 불러오기
+                  <span>연결 테스트 및 잔고 조회</span>
                 </>
               )}
             </button>
-          )}
+            {previewPositions && previewPositions.length > 0 && (
+              <button
+                onClick={handleApplyToPortfolio}
+                className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md shadow-emerald-500/20 transition-all cursor-pointer animate-pulse"
+              >
+                내 포트폴리오에 적용하기
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>

@@ -44,14 +44,20 @@ export class TossApiService {
   }
 
   /**
-   * API Base URL 결정 (로컬 개발 환경에서는 Vite 프록시, 프로덕션에서는 직접 호출)
+   * 로컬 개발 환경(Vite Reverse Proxy 구동 환경) 여부 확인
    */
-  private getBaseUrl(): string {
-    if (typeof window !== 'undefined') {
-      const hostname = window.location.hostname;
-      if (hostname === 'localhost' || hostname === '127.0.0.1') {
-        return '/toss-api';
-      }
+  public isLocalEnvironment(): boolean {
+    if (typeof window === 'undefined') return false;
+    const hostname = window.location.hostname;
+    return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '0.0.0.0';
+  }
+
+  /**
+   * API Base URL 결정 (로컬 개발 환경에서는 Vite 프록시, 기타 환경에서는 직접 호출)
+   */
+  public getBaseUrl(): string {
+    if (this.isLocalEnvironment()) {
+      return '/toss-api';
     }
     return 'https://openapi.tossinvest.com';
   }
@@ -104,6 +110,46 @@ export class TossApiService {
   }
 
   /**
+   * HTML 및 비정상 응답을 방어하는 안전한 JSON 파싱 헬퍼
+   */
+  private async parseJsonResponse(res: Response, endpointName: string): Promise<any> {
+    const rawText = await res.text();
+    const trimmed = rawText.trim();
+
+    // 응답이 HTML(<!doctype 또는 <html)인 경우 감지하여 상세 원인 안내
+    if (trimmed.startsWith('<!doctype') || trimmed.startsWith('<!DOCTYPE') || trimmed.startsWith('<html')) {
+      if (!this.isLocalEnvironment()) {
+        throw new Error(
+          '토스증권 API는 보안 규정(CORS)으로 인해 웹 배포 환경(GitHub Pages)에서의 브라우저 직접 호출을 차단합니다. PC에 구동 중인 로컬 개발 환경(http://localhost:5173)에서 접속하시면 Vite 역방향 프록시를 통해 즉시 정상 연동됩니다.'
+        );
+      } else {
+        throw new Error(
+          `토스증권 API 응답 대신 HTML 웹페이지가 수신되었습니다 (${endpointName}). Vite 개발 서버 프록시 라우팅을 점검해주세요.`
+        );
+      }
+    }
+
+    if (!res.ok) {
+      let errorMsg = `토스증권 API 오류 (${res.status})`;
+      try {
+        const errJson = JSON.parse(trimmed);
+        if (errJson.message) errorMsg = errJson.message;
+        else if (errJson.error_description) errorMsg = errJson.error_description;
+        else if (errJson.error) errorMsg = String(errJson.error);
+      } catch (_) {
+        if (trimmed) errorMsg += `: ${trimmed.slice(0, 100)}`;
+      }
+      throw new Error(errorMsg);
+    }
+
+    try {
+      return JSON.parse(trimmed);
+    } catch (parseErr: any) {
+      throw new Error(`토스증권 데이터 파싱 실패 (${endpointName}): ${parseErr.message}`);
+    }
+  }
+
+  /**
    * OAuth2 Access Token 발급
    */
   public async getAccessToken(clientId?: string, clientSecret?: string): Promise<string> {
@@ -140,29 +186,24 @@ export class TossApiService {
         body: body.toString(),
       });
     } catch (netErr: any) {
+      if (!this.isLocalEnvironment()) {
+        throw new Error(
+          '토스증권 서버와 통신할 수 없습니다 (브라우저 CORS 차단). 금융 보안 규정에 따라 웹 배포 환경에서는 증권사 API 직접 호출이 차단되므로, 로컬 환경(http://localhost:5173)에서 접속해 주세요.'
+        );
+      }
       if (netErr.name === 'TypeError' && netErr.message?.includes('Failed to fetch')) {
         throw new Error(
-          '토스증권 서버와 통신할 수 없습니다. (CORS 보안 차단 또는 토스증권 개발자 센터에 현재 IP가 미등록된 상태일 수 있습니다. 로컬 개발 환경 localhost:5173으로 실행하거나 IP를 등록해주세요)'
+          '토스증권 서버와 통신할 수 없습니다. 토스증권 개발자 센터(developers.tossinvest.com)의 [허용 IP 관리]에 현재 접속 중인 공인 IP가 등록되어 있는지 확인해주세요.'
         );
       }
       throw netErr;
     }
 
-    if (!res.ok) {
-      const errText = await res.text();
-      let errorMsg = `토스증권 인증 실패 (${res.status})`;
-      try {
-        const errJson = JSON.parse(errText);
-        if (errJson.message) errorMsg = errJson.message;
-        if (errJson.error_description) errorMsg = errJson.error_description;
-      } catch (_) {
-        if (errText) errorMsg += `: ${errText}`;
-      }
-      throw new Error(errorMsg);
-    }
-
-    const data = await res.json();
+    const data = await this.parseJsonResponse(res, 'OAuth2 토큰 발급');
     const token = data.access_token;
+    if (!token) {
+      throw new Error('토큰 발급 응답에 access_token 필드가 없습니다.');
+    }
     const expiresIn = data.expires_in || 86400;
 
     // 캐싱 저장
@@ -183,19 +224,19 @@ export class TossApiService {
     const baseUrl = this.getBaseUrl();
     const url = `${baseUrl}/api/v1/accounts`;
 
-    const res = await fetch(url, {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    if (!res.ok) {
-      throw new Error(`계좌 목록 조회 실패 (${res.status}): ${await res.text()}`);
+    let res: Response;
+    try {
+      res = await fetch(url, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+    } catch (netErr: any) {
+      throw new Error(`계좌 목록 네트워크 요청 실패: ${netErr.message}`);
     }
 
-    const data = await res.json();
-    // 응답 배열 또는 래핑 객체 처리
+    const data = await this.parseJsonResponse(res, '계좌 목록 조회');
     const rawList = Array.isArray(data) ? data : data.accounts || data.data || [];
     return rawList.map((item: any) => ({
       accountSeq: String(item.accountSeq || item.seq || item.id || ''),
@@ -231,19 +272,20 @@ export class TossApiService {
     const baseUrl = this.getBaseUrl();
     const url = `${baseUrl}/api/v1/holdings`;
 
-    const res = await fetch(url, {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'X-Tossinvest-Account': seq,
-      },
-    });
-
-    if (!res.ok) {
-      throw new Error(`보유 주식 잔고 조회 실패 (${res.status}): ${await res.text()}`);
+    let res: Response;
+    try {
+      res = await fetch(url, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'X-Tossinvest-Account': seq,
+        },
+      });
+    } catch (netErr: any) {
+      throw new Error(`보유 주식 잔고 네트워크 요청 실패: ${netErr.message}`);
     }
 
-    const data = await res.json();
+    const data = await this.parseJsonResponse(res, '보유 주식 잔고 조회');
     const rawHoldings = Array.isArray(data) ? data : data.holdings || data.data || [];
 
     const items: TossHoldingItem[] = [];
