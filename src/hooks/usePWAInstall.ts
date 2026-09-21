@@ -12,55 +12,41 @@ interface BeforeInstallPromptEvent extends Event {
 export function usePWAInstall() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isInstallable, setIsInstallable] = useState(false);
-  const [isInstalled, setIsInstalled] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
+  const [isKakaoOrInApp, setIsKakaoOrInApp] = useState(false);
 
   useEffect(() => {
-    // 1. 이미 스탠드얼론(앱) 모드로 실행 중인지 확인
-    const isStandalone =
-      window.matchMedia('(display-mode: standalone)').matches ||
-      (window.navigator as any).standalone === true;
-
-    if (isStandalone) {
-      setIsInstalled(true);
-      return;
-    }
-
-    // 2. iOS Safari 환경 감지
     const userAgent = window.navigator.userAgent.toLowerCase();
+    
+    // iOS Safari 감지
     const isIosDevice = /iphone|ipad|ipod/.test(userAgent);
     setIsIOS(isIosDevice);
 
-    // 3. Chromium 계열 브라우저 beforeinstallprompt 이벤트 캡처
+    // 카카오톡, 네이버, 인스타그램 등 인앱 브라우저 감지
+    const isInApp = /kakaotalk|naver|instagram|fb_iab|fbav|line/.test(userAgent);
+    setIsKakaoOrInApp(isInApp);
+
+    // Chromium 계열 브라우저 beforeinstallprompt 이벤트 캡처
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
       setIsInstallable(true);
     };
 
-    const handleAppInstalled = () => {
-      setIsInstalled(true);
-      setIsInstallable(false);
-      setDeferredPrompt(null);
-    };
-
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    window.addEventListener('appinstalled', handleAppInstalled);
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-      window.removeEventListener('appinstalled', handleAppInstalled);
     };
   }, []);
 
-  const installApp = async () => {
+  const installApp = async (): Promise<boolean> => {
     if (!deferredPrompt) return false;
 
     try {
       await deferredPrompt.prompt();
       const choiceResult = await deferredPrompt.userChoice;
       if (choiceResult.outcome === 'accepted') {
-        setIsInstalled(true);
         setIsInstallable(false);
         setDeferredPrompt(null);
         return true;
@@ -73,8 +59,8 @@ export function usePWAInstall() {
 
   return {
     isInstallable,
-    isInstalled,
     isIOS,
+    isKakaoOrInApp,
     installApp,
   };
 }
