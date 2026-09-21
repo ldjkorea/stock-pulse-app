@@ -13,6 +13,8 @@ import {
 } from '../../mock/mockScenarios';
 import { calculateScore } from '../engine/scoreEngine';
 
+import { realtimeMarketService } from '../services/realtimeMarketService';
+
 export class MockDataProvider implements IDataProvider {
   async getSupportedSymbols(): Promise<Symbol[]> {
     return SUPPORTED_SYMBOLS;
@@ -41,6 +43,8 @@ export class MockDataProvider implements IDataProvider {
   }
 
   async getPriceSnapshot(symbolId: string): Promise<PriceSnapshot | null> {
+    const realPrice = realtimeMarketService.getPrice(symbolId);
+    if (realPrice) return realPrice;
     return getMockPriceForSymbol(symbolId);
   }
 

@@ -36,6 +36,11 @@ export function App() {
     unreadAlertCount,
     markAlertAsRead,
     markAllAlertsAsRead,
+    isLiveStreaming,
+    isRefreshing,
+    lastRefreshedTime,
+    refreshMarketPrices,
+    toggleLiveStreaming,
   } = usePortfolioStore();
 
   const [activeTab, setActiveTab] = useState<TabType>('feed');
@@ -126,6 +131,11 @@ export function App() {
             onSelectStock={handleSelectStock}
             onOpenPortfolioManage={() => setActiveTab('portfolio')}
             onOpenSmartImport={() => setIsSmartModalOpen(true)}
+            isLiveStreaming={isLiveStreaming}
+            isRefreshing={isRefreshing}
+            lastRefreshedTime={lastRefreshedTime}
+            onRefreshMarketPrices={refreshMarketPrices}
+            onToggleLiveStreaming={toggleLiveStreaming}
           />
         )}
 

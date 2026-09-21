@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sparkles, CheckCircle, AlertTriangle, Clock } from 'lucide-react';
+import { Sparkles, CheckCircle, AlertTriangle, RefreshCw, Activity, Zap } from 'lucide-react';
 
 interface FeedHeaderProps {
   importantChangesCount: number;
@@ -7,19 +7,90 @@ interface FeedHeaderProps {
   lastCheckedTime: string;
   isSystemDelayed?: boolean;
   onToggleDelaySimulation?: () => void;
+  // 실시간 시세 연동 모듈 속성
+  isLiveStreaming?: boolean;
+  isRefreshing?: boolean;
+  lastRefreshedTime?: string;
+  onRefreshMarketPrices?: () => void;
+  onToggleLiveStreaming?: () => void;
 }
 
 export const FeedHeader: React.FC<FeedHeaderProps> = ({
   importantChangesCount,
-  analyzedStocksCount,
+  analyzedStocksCount: _analyzedStocksCount,
   lastCheckedTime,
   isSystemDelayed = false,
   onToggleDelaySimulation,
+  isLiveStreaming = true,
+  isRefreshing = false,
+  lastRefreshedTime,
+  onRefreshMarketPrices,
+  onToggleLiveStreaming,
 }) => {
   return (
-    <div className="mb-5">
-      {/* 최상단 상태 타이틀 바 */}
-      <div className="flex items-center justify-between mb-2">
+    <div className="mb-5 space-y-3">
+      {/* 1. 최상단 실시간 금융 시세 연동 LIVE 컨트롤 바 */}
+      <div className="p-3 rounded-2xl bg-slate-900 dark:bg-slate-900/90 text-white border border-slate-800 shadow-sm flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="relative flex items-center justify-center">
+            {isLiveStreaming ? (
+              <>
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping absolute opacity-75" />
+                <span className="w-2 h-2 rounded-full bg-emerald-400" />
+              </>
+            ) : (
+              <span className="w-2 h-2 rounded-full bg-slate-500" />
+            )}
+          </div>
+          <div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs font-black tracking-tight text-white flex items-center gap-1">
+                <Activity className="w-3.5 h-3.5 text-emerald-400" />
+                실시간 체결 시세 연동
+              </span>
+              <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                LIVE
+              </span>
+            </div>
+            <p className="text-[10px] text-slate-400 font-mono">
+              {lastRefreshedTime ? `${lastRefreshedTime} 체결 틱 반영` : '실시간 동기화 중'}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-1.5">
+          {/* 수동 새로고침 버튼 */}
+          {onRefreshMarketPrices && (
+            <button
+              onClick={onRefreshMarketPrices}
+              disabled={isRefreshing}
+              title="실시간 시세 즉시 갱신"
+              className="p-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 transition-all flex items-center gap-1 text-[11px] font-semibold border border-slate-700 disabled:opacity-50"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-emerald-400' : ''}`} />
+              <span className="hidden sm:inline">새로고침</span>
+            </button>
+          )}
+
+          {/* 자동 스트리밍 토글 버튼 */}
+          {onToggleLiveStreaming && (
+            <button
+              onClick={onToggleLiveStreaming}
+              title={isLiveStreaming ? '자동 갱신 일시정지' : '자동 갱신 시작'}
+              className={`px-2 py-1 rounded-xl text-[10px] font-bold transition-all border ${
+                isLiveStreaming
+                  ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/30'
+                  : 'bg-slate-800 text-slate-400 border-slate-700 hover:bg-slate-700'
+              }`}
+            >
+              {isLiveStreaming ? '자동갱신 ON' : '자동갱신 OFF'}
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* 2. 상태 타이틀 바 */}
+      <div className="flex items-center justify-between">
         <h1 className="text-lg font-black tracking-tight text-slate-900 dark:text-white flex items-center gap-1.5">
           <Sparkles className="w-5 h-5 text-blue-500" />
           오늘 확인할 변화
@@ -37,7 +108,7 @@ export const FeedHeader: React.FC<FeedHeaderProps> = ({
         )}
       </div>
 
-      {/* 상황별 상태 알림 배너 */}
+      {/* 3. 상황별 상태 알림 배너 */}
       {isSystemDelayed ? (
         // 데이터 확인 지연 (장애 상태)
         <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-400 flex items-start gap-2.5">
@@ -58,30 +129,18 @@ export const FeedHeader: React.FC<FeedHeaderProps> = ({
               <div className="text-xs font-bold text-slate-900 dark:text-white">
                 오늘 중요한 변화 <span className="text-blue-600 dark:text-blue-400 font-extrabold">{importantChangesCount}건</span> 감지
               </div>
-              <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 flex items-center gap-2">
-                <span>분석 완료 {analyzedStocksCount}종목</span>
-                <span>•</span>
-                <span className="flex items-center gap-0.5">
-                  <Clock className="w-3 h-3 text-slate-400" />
-                  마지막 정상 확인 {lastCheckedTime}
-                </span>
-              </div>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                실적 가이던스 상향 및 수급 변동 요인이 발생한 종목입니다.
+              </p>
             </div>
           </div>
         </div>
       ) : (
-        // 중요한 변화 없음 (정상 상태)
-        <div className="p-3.5 rounded-2xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 flex items-center gap-2.5">
-          <CheckCircle className="w-5 h-5 text-emerald-500 flex-shrink-0" />
-          <div>
-            <div className="text-xs font-bold text-slate-900 dark:text-white">
-              오늘 확인할 중요한 변화는 없습니다.
-            </div>
-            <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 flex items-center gap-2">
-              <span>보유 {analyzedStocksCount}개 종목 정상 확인 완료</span>
-              <span>•</span>
-              <span>마지막 확인 {lastCheckedTime}</span>
-            </div>
+        // 변화 없음 (안정 상태)
+        <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-800 dark:text-emerald-300 flex items-center gap-2.5">
+          <CheckCircle className="w-5 h-5 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
+          <div className="text-xs">
+            <span className="font-bold">이상 징후 없음:</span> 보유 종목 모두 핵심 펀더멘털이 안정적으로 유지되고 있습니다.
           </div>
         </div>
       )}

@@ -5,6 +5,7 @@ import { Alert } from '../core/types/alert';
 import { defaultDataProvider } from '../core/providers/mockDataProvider';
 import { MOCK_ALERTS } from '../mock/mockScenarios';
 import { SUPPORTED_SYMBOLS } from '../mock/symbols';
+import { realtimeMarketService } from '../core/services/realtimeMarketService';
 
 export interface EnrichedPosition extends Position {
   current_price: number;
@@ -176,6 +177,12 @@ export function usePortfolioStore() {
 
   const [enrichedPositions, setEnrichedPositions] = useState<EnrichedPosition[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+  const [isLiveStreaming, setIsLiveStreaming] = useState<boolean>(true);
+  const [lastRefreshedTime, setLastRefreshedTime] = useState<string>(() => {
+    const now = new Date();
+    return now.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  });
 
   // 로컬스토리지 영속화
   useEffect(() => {
@@ -203,80 +210,100 @@ export function usePortfolioStore() {
   }, [alerts]);
 
   // 포지션 데이터 풍부화 (현재가, 평가금액, 손익, 비중 계산)
-  useEffect(() => {
-    let isMounted = true;
-
-    async function enrich() {
-      setIsLoading(true);
-      try {
-        const results: { pos: Position; price: PriceSnapshot | null; analysis: StockAnalysis | null }[] = [];
-        
-        for (const pos of positions) {
-          const [price, analysis] = await Promise.all([
-            defaultDataProvider.getPriceSnapshot(pos.symbol_id),
-            defaultDataProvider.getStockAnalysis(pos.symbol_id),
-          ]);
-          results.push({ pos, price, analysis });
-        }
-
-        const USD_KRW_RATE = 1400; // 원/달러 기준 환율
-
-        // 총 평가금액 합계 산출 (USD 기준 환산 정규화)
-        let grandTotalValueUsd = 0;
-        for (const item of results) {
-          const sym = SUPPORTED_SYMBOLS.find((s) => s.id === item.pos.symbol_id);
-          const isKrw = sym?.currency === 'KRW' || item.pos.currency === 'KRW';
-          const currentPrice = item.price?.current_price ?? item.pos.average_cost;
-          const posVal = item.pos.quantity * currentPrice;
-          grandTotalValueUsd += isKrw ? posVal / USD_KRW_RATE : posVal;
-        }
-
-        const enriched: EnrichedPosition[] = results.map(({ pos, price, analysis }) => {
-          const sym = SUPPORTED_SYMBOLS.find((s) => s.id === pos.symbol_id);
-          const isKrw = sym?.currency === 'KRW' || pos.currency === 'KRW';
-          const currentPrice = price?.current_price ?? pos.average_cost;
-          const totalValue = pos.quantity * currentPrice;
-          const investedAmount = pos.quantity * pos.average_cost;
-          const profitAmount = totalValue - investedAmount;
-          const profitPercent = investedAmount > 0 ? (profitAmount / investedAmount) * 100 : 0;
-
-          const posValUsd = isKrw ? totalValue / USD_KRW_RATE : totalValue;
-          const weightPercent = grandTotalValueUsd > 0 ? (posValUsd / grandTotalValueUsd) * 100 : 0;
-          const isOverLimit = !!(
-            pos.target_max_weight_percent && weightPercent > pos.target_max_weight_percent
-          );
-
-          return {
-            ...pos,
-            currency: sym?.currency || pos.currency || 'USD',
-            current_price: currentPrice,
-            total_value: Number(totalValue.toFixed(2)),
-            invested_amount: Number(investedAmount.toFixed(2)),
-            unrealized_profit_amount: Number(profitAmount.toFixed(2)),
-            unrealized_profit_percent: Number(profitPercent.toFixed(2)),
-            portfolio_weight_percent: Number(weightPercent.toFixed(1)),
-            is_over_weight_limit: isOverLimit,
-            analysis,
-            price_snapshot: price,
-          };
-        });
-
-        if (isMounted) {
-          setEnrichedPositions(enriched);
-          setIsLoading(false);
-        }
-      } catch (err) {
-        console.error(err);
-        if (isMounted) setIsLoading(false);
+  const enrichPositionsData = async (silent = false) => {
+    if (!silent) setIsLoading(true);
+    try {
+      const results: { pos: Position; price: PriceSnapshot | null; analysis: StockAnalysis | null }[] = [];
+      
+      for (const pos of positions) {
+        const [price, analysis] = await Promise.all([
+          defaultDataProvider.getPriceSnapshot(pos.symbol_id),
+          defaultDataProvider.getStockAnalysis(pos.symbol_id),
+        ]);
+        results.push({ pos, price, analysis });
       }
+
+      const USD_KRW_RATE = 1400; // 원/달러 기준 환율
+
+      // 총 평가금액 합계 산출 (USD 기준 환산 정규화)
+      let grandTotalValueUsd = 0;
+      for (const item of results) {
+        const sym = SUPPORTED_SYMBOLS.find((s) => s.id === item.pos.symbol_id);
+        const isKrw = sym?.currency === 'KRW' || item.pos.currency === 'KRW';
+        const currentPrice = item.price?.current_price ?? item.pos.average_cost;
+        const posVal = item.pos.quantity * currentPrice;
+        grandTotalValueUsd += isKrw ? posVal / USD_KRW_RATE : posVal;
+      }
+
+      const enriched: EnrichedPosition[] = results.map(({ pos, price, analysis }) => {
+        const sym = SUPPORTED_SYMBOLS.find((s) => s.id === pos.symbol_id);
+        const isKrw = sym?.currency === 'KRW' || pos.currency === 'KRW';
+        const currentPrice = price?.current_price ?? pos.average_cost;
+        const totalValue = pos.quantity * currentPrice;
+        const investedAmount = pos.quantity * pos.average_cost;
+        const profitAmount = totalValue - investedAmount;
+        const profitPercent = investedAmount > 0 ? (profitAmount / investedAmount) * 100 : 0;
+
+        const posValUsd = isKrw ? totalValue / USD_KRW_RATE : totalValue;
+        const weightPercent = grandTotalValueUsd > 0 ? (posValUsd / grandTotalValueUsd) * 100 : 0;
+        const isOverLimit = !!(
+          pos.target_max_weight_percent && weightPercent > pos.target_max_weight_percent
+        );
+
+        return {
+          ...pos,
+          currency: sym?.currency || pos.currency || 'USD',
+          current_price: currentPrice,
+          total_value: Number(totalValue.toFixed(2)),
+          invested_amount: Number(investedAmount.toFixed(2)),
+          unrealized_profit_amount: Number(profitAmount.toFixed(2)),
+          unrealized_profit_percent: Number(profitPercent.toFixed(2)),
+          portfolio_weight_percent: Number(weightPercent.toFixed(1)),
+          is_over_weight_limit: isOverLimit,
+          analysis,
+          price_snapshot: price,
+        };
+      });
+
+      setEnrichedPositions(enriched);
+      setIsLoading(false);
+      setIsRefreshing(false);
+      const now = new Date();
+      setLastRefreshedTime(now.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+    } catch (err) {
+      console.error(err);
+      setIsLoading(false);
+      setIsRefreshing(false);
     }
+  };
 
-    enrich();
-
-    return () => {
-      isMounted = false;
-    };
+  // 포지션 변경 시 즉시 동기화
+  useEffect(() => {
+    enrichPositionsData();
   }, [positions]);
+
+  // 실시간 시세 스트리밍 자동 갱신 (6초마다 체결 틱 반영)
+  useEffect(() => {
+    if (!isLiveStreaming) return;
+
+    const interval = setInterval(() => {
+      realtimeMarketService.tick();
+      enrichPositionsData(true); // 조용한 백그라운드 갱신
+    }, 6000);
+
+    return () => clearInterval(interval);
+  }, [isLiveStreaming, positions]);
+
+  // 수동 실시간 새로고침 트리거
+  const refreshMarketPrices = async () => {
+    setIsRefreshing(true);
+    realtimeMarketService.tick();
+    await enrichPositionsData(false);
+  };
+
+  const toggleLiveStreaming = () => {
+    setIsLiveStreaming((prev) => !prev);
+  };
 
   const USD_KRW_RATE = 1400;
 
@@ -408,5 +435,11 @@ export function usePortfolioStore() {
     unreadAlertCount,
     markAlertAsRead,
     markAllAlertsAsRead,
+    // 실시간 금융 시세 연동
+    isLiveStreaming,
+    isRefreshing,
+    lastRefreshedTime,
+    refreshMarketPrices,
+    toggleLiveStreaming,
   };
 }

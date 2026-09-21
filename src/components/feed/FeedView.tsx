@@ -9,6 +9,12 @@ interface FeedViewProps {
   onSelectStock: (symbolId: string) => void;
   onOpenPortfolioManage: () => void;
   onOpenSmartImport?: () => void;
+  // 실시간 금융 시세 연동 모듈
+  isLiveStreaming?: boolean;
+  isRefreshing?: boolean;
+  lastRefreshedTime?: string;
+  onRefreshMarketPrices?: () => void;
+  onToggleLiveStreaming?: () => void;
 }
 
 export const FeedView: React.FC<FeedViewProps> = ({
@@ -16,6 +22,11 @@ export const FeedView: React.FC<FeedViewProps> = ({
   onSelectStock,
   onOpenPortfolioManage,
   onOpenSmartImport,
+  isLiveStreaming = true,
+  isRefreshing = false,
+  lastRefreshedTime,
+  onRefreshMarketPrices,
+  onToggleLiveStreaming,
 }) => {
   const [isSystemDelayed, setIsSystemDelayed] = useState(false);
 
@@ -26,13 +37,18 @@ export const FeedView: React.FC<FeedViewProps> = ({
 
   return (
     <div className="max-w-xl mx-auto px-4 py-4 pb-24">
-      {/* 1. 상단 요약 바 */}
+      {/* 1. 상단 요약 바 & 실시간 체결 시세 컨트롤 */}
       <FeedHeader
         importantChangesCount={importantChangesCount}
         analyzedStocksCount={positions.length}
         lastCheckedTime="오전 8:45"
         isSystemDelayed={isSystemDelayed}
         onToggleDelaySimulation={() => setIsSystemDelayed((prev) => !prev)}
+        isLiveStreaming={isLiveStreaming}
+        isRefreshing={isRefreshing}
+        lastRefreshedTime={lastRefreshedTime}
+        onRefreshMarketPrices={onRefreshMarketPrices}
+        onToggleLiveStreaming={onToggleLiveStreaming}
       />
 
       {/* 1.5 첫 화면 스마트 등록 배너 */}
