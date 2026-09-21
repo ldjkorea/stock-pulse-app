@@ -1,8 +1,8 @@
-import React from 'react';
-import { Settings, Moon, Sun, RotateCcw, Smartphone, Layers, Cpu, ShieldCheck, Wifi, ExternalLink } from 'lucide-react';
+import { Settings, Moon, Sun, RotateCcw, Smartphone, Layers, Cpu, ShieldCheck, Wifi, ExternalLink, Key, CheckCircle2 } from 'lucide-react';
 import { ThemeMode } from '../../stores/themeStore';
 import { CURRENT_SCORE_MODEL_VERSION } from '../../core/engine/weights';
 import { SUPPORTED_SYMBOLS } from '../../mock/symbols';
+import { tossApiService } from '../../core/services/tossApiService';
 
 interface SettingsViewProps {
   theme: ThemeMode;
@@ -11,6 +11,7 @@ interface SettingsViewProps {
   onRestartOnboarding: () => void;
   onSelectStock: (symbolId: string) => void;
   onOpenInstallModal: () => void;
+  onOpenTossApiModal?: () => void;
 }
 
 export const SettingsView: React.FC<SettingsViewProps> = ({
@@ -20,7 +21,9 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   onRestartOnboarding,
   onSelectStock,
   onOpenInstallModal,
+  onOpenTossApiModal,
 }) => {
+  const tossCreds = tossApiService.getCredentials();
   return (
     <div className="max-w-xl mx-auto px-4 py-4 pb-24 space-y-4">
       <div className="flex items-center gap-2 mb-4">
@@ -67,6 +70,44 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             http://192.168.55.77:5173/
           </div>
         </div>
+      </div>
+
+      {/* 0.5 토스증권 Open API 실시간 연동 */}
+      <div className="p-4 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800/90 shadow-sm flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-2xl bg-blue-600/10 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold">
+            <Key className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h2 className="text-sm font-bold text-slate-900 dark:text-white">
+                토스증권 Open API 연동
+              </h2>
+              {tossCreds ? (
+                <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                  <CheckCircle2 className="w-3 h-3" /> 연동 활성화
+                </span>
+              ) : (
+                <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400">
+                  미연동
+                </span>
+              )}
+            </div>
+            <p className="text-[11px] text-slate-400 mt-0.5">
+              {tossCreds
+                ? '내 계좌 잔고 및 실시간 체결 시세 동기화 가능'
+                : 'Client ID / Secret을 등록하여 계좌와 시세를 1초 동기화'}
+            </p>
+          </div>
+        </div>
+        {onOpenTossApiModal && (
+          <button
+            onClick={onOpenTossApiModal}
+            className="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm transition-all shrink-0"
+          >
+            {tossCreds ? '관리' : '연동하기'}
+          </button>
+        )}
       </div>
 
       {/* 1. 화면 테마 설정 */}

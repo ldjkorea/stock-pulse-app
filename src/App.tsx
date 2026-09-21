@@ -11,6 +11,7 @@ import { PortfolioManageView } from './components/portfolio/PortfolioManageView'
 import { AlertsView } from './components/alerts/AlertsView';
 import { SettingsView } from './components/settings/SettingsView';
 import { SmartImportModal } from './components/portfolio/SmartImportModal';
+import { TossApiModal } from './components/settings/TossApiModal';
 import { SUPPORTED_SYMBOLS } from './mock/symbols';
 import { defaultDataProvider } from './core/providers/mockDataProvider';
 import { StockAnalysis } from './core/types/analysis';
@@ -48,9 +49,17 @@ export function App() {
   const [dynamicAnalysis, setDynamicAnalysis] = useState<StockAnalysis | null>(null);
   const [isInstallModalOpen, setIsInstallModalOpen] = useState(false);
   const [isSmartModalOpen, setIsSmartModalOpen] = useState(false);
+  const [isTossModalOpen, setIsTossModalOpen] = useState(false);
 
   // 스마트 일괄 등록 처리
   const handleSmartBatchImport = (newPositions: Parameters<typeof addPosition>[0][]) => {
+    newPositions.forEach((pos) => {
+      addPosition(pos);
+    });
+  };
+
+  // 토스증권 잔고 동기화 완료 처리
+  const handleTossSyncComplete = (newPositions: Parameters<typeof addPosition>[0][]) => {
     newPositions.forEach((pos) => {
       addPosition(pos);
     });
@@ -152,6 +161,7 @@ export function App() {
             onSelectStock={handleSelectStock}
             onExportPortfolio={exportPortfolio}
             onImportPortfolio={importPortfolio}
+            onOpenTossModal={() => setIsTossModalOpen(true)}
           />
         )}
 
@@ -172,6 +182,7 @@ export function App() {
             onRestartOnboarding={() => setIsOnboarded(false)}
             onSelectStock={handleSelectStock}
             onOpenInstallModal={() => setIsInstallModalOpen(true)}
+            onOpenTossApiModal={() => setIsTossModalOpen(true)}
           />
         )}
       </main>
@@ -197,6 +208,13 @@ export function App() {
         isOpen={isSmartModalOpen}
         onClose={() => setIsSmartModalOpen(false)}
         onImportPositions={handleSmartBatchImport}
+      />
+
+      {/* 토스증권 Open API 연동 모달 */}
+      <TossApiModal
+        isOpen={isTossModalOpen}
+        onClose={() => setIsTossModalOpen(false)}
+        onSyncComplete={handleTossSyncComplete}
       />
     </div>
   );

@@ -9,6 +9,16 @@ export default defineConfig({
     tailwindcss(),
     react(),
   ],
+  server: {
+    proxy: {
+      '/toss-api': {
+        target: 'https://openapi.tossinvest.com',
+        changeOrigin: true,
+        rewrite: (path: string) => path.replace(/^\/toss-api/, ''),
+        secure: false,
+      },
+    },
+  },
   test: {
     globals: true,
     environment: 'node',

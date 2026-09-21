@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { PieChart, Plus, Trash2, Edit2, Check, X, Search, AlertCircle, Download, Upload, ShieldCheck, Sparkles } from 'lucide-react';
+import { PieChart, Plus, Trash2, Edit2, Check, X, Search, AlertCircle, Download, Upload, ShieldCheck, Sparkles, Key } from 'lucide-react';
 import { EnrichedPosition } from '../../stores/portfolioStore';
 import { Position } from '../../core/types/models';
 import { SUPPORTED_SYMBOLS } from '../../mock/symbols';
@@ -18,6 +18,7 @@ interface PortfolioManageViewProps {
   onSelectStock: (symbolId: string) => void;
   onExportPortfolio?: () => void;
   onImportPortfolio?: (json: string) => { success: boolean; message: string };
+  onOpenTossModal?: () => void;
 }
 
 export const PortfolioManageView: React.FC<PortfolioManageViewProps> = ({
@@ -32,6 +33,7 @@ export const PortfolioManageView: React.FC<PortfolioManageViewProps> = ({
   onSelectStock,
   onExportPortfolio,
   onImportPortfolio,
+  onOpenTossModal,
 }) => {
   const [showAddForm, setShowAddForm] = useState(false);
   const [showSmartModal, setShowSmartModal] = useState(false);
@@ -152,6 +154,16 @@ export const PortfolioManageView: React.FC<PortfolioManageViewProps> = ({
           </h1>
         </div>
         <div className="flex items-center gap-1.5">
+          {onOpenTossModal && (
+            <button
+              onClick={onOpenTossModal}
+              className="px-2.5 py-1.5 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/60 font-bold text-xs flex items-center gap-1 border border-blue-200 dark:border-blue-800 transition-all shadow-sm"
+              title="토스증권 Open API 실시간 계좌 연동"
+            >
+              <Key className="w-3.5 h-3.5" />
+              <span>토스증권</span>
+            </button>
+          )}
           <button
             onClick={() => setShowSmartModal(true)}
             className="px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs flex items-center gap-1 shadow-sm transition-all"
