@@ -1,7 +1,7 @@
 {
-  "name": "Stock Pulse - 주식 포트폴리오 분석",
+  "name": "Stock Pulse - 주식 분석",
   "short_name": "StockPulse",
-  "id": "stock-pulse-app-v1",
+  "id": "stock-pulse-live-v2",
   "description": "내가 보유한 주식의 중요한 변화와 투자 매력도를 카드 한 장으로 이해하는 서비스",
   "start_url": "./",
   "scope": "./",
