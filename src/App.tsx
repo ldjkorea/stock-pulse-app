@@ -29,6 +29,8 @@ export function App() {
     updatePosition,
     removePosition,
     resetToDemoPortfolio,
+    exportPortfolio,
+    importPortfolio,
     alerts,
     unreadAlertCount,
     markAlertAsRead,
@@ -127,6 +129,8 @@ export function App() {
             onUpdatePosition={updatePosition}
             onRemovePosition={removePosition}
             onSelectStock={handleSelectStock}
+            onExportPortfolio={exportPortfolio}
+            onImportPortfolio={importPortfolio}
           />
         )}
 

@@ -256,6 +256,49 @@ export function usePortfolioStore() {
     setIsOnboarded(true);
   };
 
+  const exportPortfolio = () => {
+    const dataToExport = {
+      version: '1.0',
+      exported_at: new Date().toISOString(),
+      positions,
+    };
+    const blob = new Blob([JSON.stringify(dataToExport, null, 2)], {
+      type: 'application/json',
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `stock-pulse-portfolio-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const importPortfolio = (jsonString: string): { success: boolean; message: string } => {
+    try {
+      const parsed = JSON.parse(jsonString);
+      const importedPositions: Position[] = Array.isArray(parsed)
+        ? parsed
+        : parsed.positions;
+
+      if (!Array.isArray(importedPositions) || importedPositions.length === 0) {
+        return { success: false, message: '올바른 포트폴리오 데이터 형식이 아닙니다.' };
+      }
+
+      // 유효성 체크
+      for (const p of importedPositions) {
+        if (!p.symbol_id || typeof p.quantity !== 'number' || typeof p.average_cost !== 'number') {
+          return { success: false, message: '포지션 데이터에 필수 항목(종목, 수량, 평단가)이 누락되었습니다.' };
+        }
+      }
+
+      setPositions(importedPositions);
+      setIsOnboarded(true);
+      return { success: true, message: `${importedPositions.length}개 종목을 성공적으로 불러왔습니다.` };
+    } catch (err) {
+      return { success: false, message: 'JSON 파일 파싱 중 오류가 발생했습니다.' };
+    }
+  };
+
   return {
     positions,
     enrichedPositions,
@@ -271,6 +314,8 @@ export function usePortfolioStore() {
     updatePosition,
     removePosition,
     resetToDemoPortfolio,
+    exportPortfolio,
+    importPortfolio,
     alerts,
     unreadAlertCount,
     markAlertAsRead,
