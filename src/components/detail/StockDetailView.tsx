@@ -7,6 +7,7 @@ import { DetailHeader } from './DetailHeader';
 import { EasyExplanation } from './EasyExplanation';
 import { MyPositionBox } from './MyPositionBox';
 import { RsiSynergyBox } from './RsiSynergyBox';
+import { TenIndicatorsBox } from './TenIndicatorsBox';
 import { FactorBars } from './FactorBars';
 import { WhatChanged } from './WhatChanged';
 import { CounterThesisBox } from './CounterThesisBox';
@@ -34,10 +35,17 @@ export const StockDetailView: React.FC<StockDetailViewProps> = ({
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [symbol.id]);
 
+  const priceSnapshot = position?.price_snapshot || getMockPriceForSymbol(symbol.id);
+
   return (
     <div className="max-w-xl mx-auto px-4 py-2 pb-24">
       {/* A. 현재 결론 & 상단 네비게이션 */}
-      <DetailHeader symbol={symbol} analysis={analysis} onBack={onBack} />
+      <DetailHeader
+        symbol={symbol}
+        analysis={analysis}
+        onBack={onBack}
+        rsiValue={priceSnapshot?.rsi}
+      />
 
       {/* 정정 내역(Correction) 존재 시 최우선 표시 */}
       {analysis.corrections && analysis.corrections.length > 0 && (
@@ -60,10 +68,17 @@ export const StockDetailView: React.FC<StockDetailViewProps> = ({
 
       {/* C-1. 실시간 RSI 수급 타이밍 및 펀더멘털 결합 분석 */}
       <RsiSynergyBox
-        priceSnapshot={position?.price_snapshot || getMockPriceForSymbol(symbol.id)}
+        priceSnapshot={priceSnapshot}
         totalScore={analysis.total_score}
         scoreLabel={analysis.score_label}
         symbolName={symbol.name_ko}
+      />
+
+      {/* C-2. 10대 핵심 투자 지표 종합 점검표 */}
+      <TenIndicatorsBox
+        symbolId={symbol.id}
+        symbolName={symbol.name_ko}
+        rsiValue={priceSnapshot?.rsi}
       />
 
       {/* D. 5대 평가요인 막대 게이지 */}

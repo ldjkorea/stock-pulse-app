@@ -21,6 +21,37 @@ export const FACTOR_LABELS_KO: Record<FactorType, string> = {
 // 1.0 ~ 10.0 점수 라벨
 export type ScoreLabel = '매우 불리' | '불리' | '중립' | '우호적' | '매우 우호적';
 
+// 5단계 직관적 투자 행동 제안 (Action Signal)
+export type ActionSignal =
+  | 'STRONG_BUY'   // 강한 매수 제안
+  | 'BUY'          // 매수 제안
+  | 'HOLD'         // 보류
+  | 'SELL'         // 매도 제안
+  | 'STRONG_SELL'; // 강한 매도 제안
+
+export type ActionSignalLabel = '강한 매수 제안' | '매수 제안' | '보류' | '매도 제안' | '강한 매도 제안';
+
+export interface ActionSignalInfo {
+  signal: ActionSignal;
+  label: ActionSignalLabel;
+  score: number;
+  rsi?: number;
+  summary_reason: string;
+  timing_hint: string;
+}
+
+// 10대 핵심 투자 지표 인터페이스
+export interface TenIndicatorItem {
+  id: string;
+  name: string;           // 지표명 (예: RSI(14) 수급 지표)
+  category: '수급/모멘텀' | '실적/성장성' | '밸류에이션' | '재무/리스크';
+  current_value: string;  // 현재 수치 (예: "32.4", "PER 18.2배", "YoY +28.5%")
+  benchmark?: string;     // 기준/적정치 (예: "30이하 과매도", "업종평균 24.5배")
+  status: 'POSITIVE' | 'NEUTRAL' | 'CAUTION'; // 양호 / 중립 / 주의
+  status_label: '강한 긍정' | '양호' | '중립' | '주의' | '위험';
+  comment: string;        // 지표별 한줄 팩트 해석
+}
+
 // 신뢰도 2차원 축
 export type EvidenceSufficiency = '높음' | '보통' | '낮음';
 export type ForecastUncertainty = '낮음' | '보통' | '높음';

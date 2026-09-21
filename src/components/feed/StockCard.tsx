@@ -2,8 +2,10 @@ import React from 'react';
 import { ArrowUpRight, ArrowDownRight, Minus, ChevronRight, AlertCircle } from 'lucide-react';
 import { EnrichedPosition } from '../../stores/portfolioStore';
 import { ScoreBadge, TrustBadge } from '../common/Badge';
+import { ActionSignalBadge } from '../common/ActionSignalBadge';
 import { RsiBadge } from '../common/RsiBadge';
 import { SUPPORTED_SYMBOLS } from '../../mock/symbols';
+import { calculateActionSignal } from '../../core/utils/actionSignalHelper';
 
 interface StockCardProps {
   item: EnrichedPosition;
@@ -25,6 +27,9 @@ export const StockCard: React.FC<StockCardProps> = ({ item, onClick }) => {
   const displayTime = analysis?.display_time_ko ?? '오전 8:45';
 
   const isProfit = item.unrealized_profit_amount >= 0;
+
+  // 5단계 투자 행동 제안 및 RSI 연계 계산
+  const actionInfo = calculateActionSignal(totalScore, item.price_snapshot?.rsi);
 
   return (
     <div
@@ -57,7 +62,8 @@ export const StockCard: React.FC<StockCardProps> = ({ item, onClick }) => {
             </span>
             <span className="text-xs text-slate-400 font-medium">/ 10</span>
           </div>
-          <div className="mt-0.5 flex items-center justify-end gap-1.5">
+          <div className="mt-1 flex items-center justify-end gap-1.5 flex-wrap">
+            <ActionSignalBadge label={actionInfo.label} size="sm" />
             <ScoreBadge label={scoreLabel} size="sm" />
             {/* 점수 변화 */}
             {previousScore !== undefined && scoreChange !== 0 ? (
@@ -75,20 +81,20 @@ export const StockCard: React.FC<StockCardProps> = ({ item, onClick }) => {
                   <ArrowDownRight className="w-3.5 h-3.5" />
                 )}
               </span>
-            ) : (
-              <span className="inline-flex items-center text-[11px] font-mono text-slate-400">
-                <Minus className="w-3 h-3" /> 보합
-              </span>
-            )}
+            ) : null}
           </div>
         </div>
       </div>
 
       {/* 2. 카드 핵심 이유 문장 */}
-      <div className="my-3 py-2 px-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
+      <div className="my-3 py-2.5 px-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 space-y-1.5">
         <p className="text-xs font-medium text-slate-700 dark:text-slate-200 leading-relaxed">
           {headline}
         </p>
+        <div className="text-[11px] font-bold text-blue-600 dark:text-blue-400 flex items-center gap-1">
+          <span>💡 제안 근거:</span>
+          <span>{actionInfo.timing_hint}</span>
+        </div>
       </div>
 
       {/* 2-1. 실시간 기술적 수급 타이밍 (RSI) 뱃지 */}
