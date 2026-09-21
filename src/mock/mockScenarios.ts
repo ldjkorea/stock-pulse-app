@@ -146,6 +146,15 @@ export const MOCK_PRICES: Record<string, PriceSnapshot> = {
     market_cap_billions: 135,
     as_of: '2026-09-22 15:30 KST',
   },
+  AMAT: {
+    id: 'PR_AMAT',
+    symbol_id: 'AMAT',
+    current_price: 214.80,
+    change_amount: -2.35,
+    change_percent: -1.08,
+    market_cap_billions: 175,
+    as_of: '2026-09-21 16:00 EDT',
+  },
 };
 
 // 기본 주가 생성 헬퍼 (나머지 15개 종목용)
@@ -219,6 +228,17 @@ export const MOCK_FINANCIALS: Record<string, FinancialSnapshot> = {
     debt_to_equity: 120.0,
     as_of: 'FY2026 Q2',
   },
+  AMAT: {
+    id: 'FS_AMAT',
+    symbol_id: 'AMAT',
+    revenue_growth_yoy: 15.2,
+    operating_margin: 29.5,
+    net_margin: 26.0,
+    fcf_growth_yoy: 18.5,
+    roe: 38.0,
+    debt_to_equity: 35.0,
+    as_of: 'FY2026 Q3',
+  },
 };
 
 // 컨센서스 Mock
@@ -271,6 +291,16 @@ export const MOCK_CONSENSUS: Record<string, ConsensusSnapshot> = {
     target_price_consensus: 1050.00,
     eps_revision_up_count: 32,
     eps_revision_down_count: 1,
+    as_of: '2026-09-20',
+  },
+  AMAT: {
+    id: 'CS_AMAT',
+    symbol_id: 'AMAT',
+    forward_pe: 22.5,
+    peg_ratio: 1.35,
+    target_price_consensus: 245.00,
+    eps_revision_up_count: 22,
+    eps_revision_down_count: 4,
     as_of: '2026-09-20',
   },
 };
