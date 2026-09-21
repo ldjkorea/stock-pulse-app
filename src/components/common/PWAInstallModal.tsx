@@ -112,6 +112,32 @@ export const PWAInstallModal: React.FC<PWAInstallModalProps> = ({ isOpen, onClos
           </p>
         </div>
 
+        {/* '이미 설치되어 있습니다' 반복 시 해결 가이드 */}
+        <div className="my-3 p-3.5 rounded-2xl bg-indigo-50/80 dark:bg-indigo-950/40 border border-indigo-200/80 dark:border-indigo-900/50 text-xs space-y-2">
+          <div className="flex items-center gap-1.5 font-bold text-indigo-950 dark:text-indigo-200">
+            <span className="w-5 h-5 rounded-full bg-indigo-600 text-white flex items-center justify-center text-[11px] font-black flex-shrink-0">
+              ?
+            </span>
+            <span>"이미 설치되어 있습니다"라고 계속 뜬다면?</span>
+          </div>
+          <div className="text-[11px] text-slate-600 dark:text-slate-300 space-y-1.5 leading-relaxed">
+            <p>
+              스마트폰 설정상 바탕화면이 아닌 <strong>[앱 서랍(전체 앱 목록)]</strong>에 이미 설치되어 있어서 그렇습니다.
+            </p>
+            <div className="p-2 rounded-xl bg-white/80 dark:bg-slate-900/80 border border-indigo-100 dark:border-indigo-900/60 space-y-1 text-[11px]">
+              <div>
+                <strong>방법 1 (아이콘 꺼내기):</strong> 휴대폰 화면을 아래에서 위로 쓸어올려 전체 앱 목록에서 <strong>Stock Pulse</strong>를 길게 눌러 <strong>[홈 화면에 추가]</strong>를 누르세요.
+              </div>
+              <div className="pt-1 border-t border-indigo-50 dark:border-indigo-950">
+                <strong>방법 2 (지우고 다시 깔기):</strong> 휴대폰 <strong>[설정] &gt; [애플리케이션] &gt; [Stock Pulse] &gt; [삭제]</strong> 후 다시 누르세요.
+              </div>
+            </div>
+            <p className="text-[10px] text-indigo-600 dark:text-indigo-300 font-semibold pt-0.5">
+              💡 설치하지 않고 현재 인터넷 창(북마크)으로 쓰셔도 100% 똑같이 동작합니다!
+            </p>
+          </div>
+        </div>
+
         {/* 닫기 버튼 */}
         <button
           onClick={onClose}
