@@ -111,14 +111,24 @@ export const FeedHeader: React.FC<FeedHeaderProps> = ({
       {/* 3. 상황별 상태 알림 배너 */}
       {isSystemDelayed ? (
         // 데이터 확인 지연 (장애 상태)
-        <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-400 flex items-start gap-2.5">
-          <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5" />
-          <div>
-            <div className="text-xs font-bold">일부 데이터 확인 지연</div>
-            <p className="text-[11px] text-amber-600/90 dark:text-amber-400/90 mt-0.5 leading-normal">
-              일부 증권 공시 및 시장 데이터 공급사의 응답이 지연되어 마지막 정상 확인 시각({lastCheckedTime}) 기준의 분석이 표시됩니다.
-            </p>
+        <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-400 flex items-start justify-between gap-2.5">
+          <div className="flex items-start gap-2.5">
+            <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+            <div>
+              <div className="text-xs font-bold">일부 데이터 확인 지연</div>
+              <p className="text-[11px] text-amber-600/90 dark:text-amber-400/90 mt-0.5 leading-normal">
+                일부 증권 공시 및 시장 데이터 공급사의 응답이 지연되어 마지막 정상 확인 시각({lastCheckedTime}) 기준의 분석이 표시됩니다.
+              </p>
+            </div>
           </div>
+          {onToggleDelaySimulation && (
+            <button
+              onClick={onToggleDelaySimulation}
+              className="px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-900 dark:text-amber-200 text-[11px] font-bold flex-shrink-0 transition-colors"
+            >
+              정상 복원
+            </button>
+          )}
         </div>
       ) : importantChangesCount > 0 ? (
         // 중요한 변화 발생 상태

@@ -35,13 +35,21 @@ export const FeedView: React.FC<FeedViewProps> = ({
     (p) => (p.analysis?.score_change !== undefined && Math.abs(p.analysis.score_change) >= 0.5)
   ).length;
 
+  // 현재 시각 기준 마지막 정상 확인 시각 (최신 갱신 시간 또는 직전 5분 전)
+  const dynamicLastCheckedTime =
+    lastRefreshedTime ||
+    new Date(Date.now() - 5 * 60 * 1000).toLocaleTimeString('ko-KR', {
+      hour: 'numeric',
+      minute: '2-digit',
+    });
+
   return (
     <div className="max-w-xl mx-auto px-4 py-4 pb-24">
       {/* 1. 상단 요약 바 & 실시간 체결 시세 컨트롤 */}
       <FeedHeader
         importantChangesCount={importantChangesCount}
         analyzedStocksCount={positions.length}
-        lastCheckedTime="오전 8:45"
+        lastCheckedTime={dynamicLastCheckedTime}
         isSystemDelayed={isSystemDelayed}
         onToggleDelaySimulation={() => setIsSystemDelayed((prev) => !prev)}
         isLiveStreaming={isLiveStreaming}
