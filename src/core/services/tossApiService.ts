@@ -1,4 +1,4 @@
-import { Position } from '../types/models';
+import { Position, Symbol } from '../types/models';
 import { SUPPORTED_SYMBOLS } from '../../mock/symbols';
 
 export interface TossCredentials {
@@ -17,6 +17,7 @@ export interface TossAccountInfo {
   accountSeq: string;
   accountNo: string;
   accountName?: string;
+  accountType?: string;
 }
 
 export interface TossHoldingItem {
@@ -218,6 +219,8 @@ export class TossApiService {
 
   /**
    * 계좌 목록 및 기본 accountSeq 조회
+   * 토스증권 OpenAPI 스펙: GET /api/v1/accounts
+   * 응답: { result: [ { accountNo: "...", accountSeq: 1, accountType: "BROKERAGE" } ] }
    */
   public async getAccounts(accessToken?: string): Promise<TossAccountInfo[]> {
     const token = accessToken || (await this.getAccessToken());
@@ -237,16 +240,35 @@ export class TossApiService {
     }
 
     const data = await this.parseJsonResponse(res, '계좌 목록 조회');
-    const rawList = Array.isArray(data) ? data : data.accounts || data.data || [];
+
+    // 토스증권 공식 응답 구조 파싱 ({ result: [...] })
+    let rawList: any[] = [];
+    if (Array.isArray(data)) {
+      rawList = data;
+    } else if (data && Array.isArray(data.result)) {
+      rawList = data.result;
+    } else if (data && Array.isArray(data.accounts)) {
+      rawList = data.accounts;
+    } else if (data && Array.isArray(data.data)) {
+      rawList = data.data;
+    }
+
     return rawList.map((item: any) => ({
-      accountSeq: String(item.accountSeq || item.seq || item.id || ''),
-      accountNo: String(item.accountNo || item.account_number || item.accountSeq || ''),
-      accountName: item.accountName || item.name || '종합매매계좌',
+      accountSeq: String(item.accountSeq ?? item.seq ?? item.id ?? ''),
+      accountNo: String(item.accountNo ?? item.account_number ?? item.accountSeq ?? ''),
+      accountName:
+        item.accountType === 'BROKERAGE'
+          ? '종합매매계좌'
+          : item.accountName || item.name || '주식계좌',
+      accountType: item.accountType,
     }));
   }
 
   /**
    * 토스증권 계좌의 보유 잔고(Holdings) 조회
+   * 토스증권 OpenAPI 스펙: GET /api/v1/holdings
+   * 헤더: X-Tossinvest-Account: {accountSeq}
+   * 응답: { result: { items: [ { symbol, name, quantity, averagePurchasePrice, lastPrice, currency, marketCountry } ] } }
    */
   public async getHoldings(accountSeq?: string, accessToken?: string): Promise<TossHoldingItem[]> {
     const token = accessToken || (await this.getAccessToken());
@@ -259,7 +281,7 @@ export class TossApiService {
         // 계좌 목록 조회해서 첫 번째 계좌 사용
         const accounts = await this.getAccounts(token);
         if (accounts.length === 0) {
-          throw new Error('토스증권에 개설된 주식 계좌를 찾을 수 없습니다.');
+          throw new Error('토스증권에 개설된 주식 계좌를 찾을 수 없습니다. 토스증권 앱에서 증권 계좌가 정상 개설되어 있는지 확인해주세요.');
         }
         seq = accounts[0].accountSeq;
         // 저장해둠
@@ -278,7 +300,7 @@ export class TossApiService {
         method: 'GET',
         headers: {
           Authorization: `Bearer ${token}`,
-          'X-Tossinvest-Account': seq,
+          'X-Tossinvest-Account': String(seq),
         },
       });
     } catch (netErr: any) {
@@ -286,7 +308,24 @@ export class TossApiService {
     }
 
     const data = await this.parseJsonResponse(res, '보유 주식 잔고 조회');
-    const rawHoldings = Array.isArray(data) ? data : data.holdings || data.data || [];
+
+    // 토스증권 공식 응답 구조 파싱 ({ result: { items: [...] } })
+    let rawHoldings: any[] = [];
+    if (Array.isArray(data)) {
+      rawHoldings = data;
+    } else if (data && data.result) {
+      if (Array.isArray(data.result.items)) {
+        rawHoldings = data.result.items;
+      } else if (Array.isArray(data.result)) {
+        rawHoldings = data.result;
+      }
+    } else if (data && Array.isArray(data.items)) {
+      rawHoldings = data.items;
+    } else if (data && Array.isArray(data.holdings)) {
+      rawHoldings = data.holdings;
+    } else if (data && Array.isArray(data.data)) {
+      rawHoldings = data.data;
+    }
 
     const items: TossHoldingItem[] = [];
 
@@ -295,9 +334,13 @@ export class TossApiService {
       if (!rawSymbol) continue;
 
       const qty = parseFloat(String(h.quantity || h.qty || h.holdingQty || '0'));
-      const avgPrice = parseFloat(String(h.averagePrice || h.averageCost || h.avgPrice || '0'));
-      const curPrice = parseFloat(String(h.currentPrice || h.price || '0'));
-      const isKrw = /^\d{6}$/.test(rawSymbol);
+      const avgPrice = parseFloat(
+        String(h.averagePurchasePrice || h.averagePrice || h.averageCost || h.avgPrice || '0')
+      );
+      const curPrice = parseFloat(
+        String(h.lastPrice || h.currentPrice || h.price || '0')
+      );
+      const isKrw = h.currency === 'KRW' || h.marketCountry === 'KR' || /^\d{6}$/.test(rawSymbol);
 
       items.push({
         symbol: rawSymbol,
@@ -322,18 +365,26 @@ export class TossApiService {
   }> {
     const holdings = await this.getHoldings();
     const convertedPositions: Position[] = [];
-    let unsupportedCount = 0;
 
     for (const h of holdings) {
-      // 대소문자 정규화
       const upper = h.symbol.toUpperCase();
-      const matched = SUPPORTED_SYMBOLS.find(
+      let matched = SUPPORTED_SYMBOLS.find(
         (s) => s.id.toUpperCase() === upper || s.ticker.toUpperCase() === upper
       );
 
+      // 만약 기존 사전 목록에 없는 종목이라도 동적으로 자동 등록하여 누락 방지
       if (!matched) {
-        unsupportedCount++;
-        continue;
+        matched = {
+          id: upper,
+          ticker: upper,
+          name_ko: h.name || upper,
+          name_en: h.name || upper,
+          sector: h.currency === 'KRW' ? '국내 시장 종목' : '해외 시장 종목',
+          currency: h.currency || (h.averagePrice > 1000 ? 'KRW' : 'USD'),
+          is_supported: true,
+          description: `토스증권 계좌에서 실시간 연동된 종목 (${h.name || upper})`,
+        };
+        SUPPORTED_SYMBOLS.push(matched);
       }
 
       convertedPositions.push({
@@ -363,7 +414,7 @@ export class TossApiService {
     return {
       positions: convertedPositions,
       syncedCount: convertedPositions.length,
-      unsupportedCount,
+      unsupportedCount: 0,
     };
   }
 }
