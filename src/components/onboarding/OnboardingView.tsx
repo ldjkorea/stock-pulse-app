@@ -3,6 +3,7 @@ import { Search, Plus, Trash2, CheckCircle2, AlertCircle, ArrowRight, Sparkles }
 import { Position } from '../../core/types/models';
 import { SUPPORTED_SYMBOLS } from '../../mock/symbols';
 import { INITIAL_DEMO_POSITIONS } from '../../stores/portfolioStore';
+import { SmartImportModal } from '../portfolio/SmartImportModal';
 
 interface OnboardingViewProps {
   onComplete: (positions: Position[]) => void;
@@ -23,6 +24,8 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({ onComplete }) =>
     },
   ]);
 
+  const [showSmartModal, setShowSmartModal] = useState(false);
+
   // 종목 검색 입력 상태
   const [searchQuery, setSearchQuery] = useState('');
   const [searchError, setSearchError] = useState<string | null>(null);
@@ -31,6 +34,21 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({ onComplete }) =>
   const [averageCost, setAverageCost] = useState<number>(150);
   const [targetWeight, setTargetWeight] = useState<number>(20);
   const [horizon, setHorizon] = useState<'SHORT' | 'MEDIUM' | 'LONG'>('MEDIUM');
+
+  const handleSmartBatchImport = (newPositions: Omit<Position, 'id' | 'created_at' | 'updated_at'>[]) => {
+    setPositions((prev) => {
+      const merged = [...prev];
+      newPositions.forEach((np) => {
+        const idx = merged.findIndex((p) => p.symbol_id === np.symbol_id);
+        if (idx >= 0) {
+          merged[idx] = np;
+        } else {
+          merged.push(np);
+        }
+      });
+      return merged;
+    });
+  };
 
   // 종목 검색 핸들러
   const handleSearch = (q: string) => {
@@ -159,9 +177,18 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({ onComplete }) =>
 
         {/* 종목 직접 등록 폼 */}
         <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm mb-6">
-          <h2 className="text-sm font-bold text-slate-900 dark:text-white mb-3">
-            직접 포트폴리오 구성하기
-          </h2>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-bold text-slate-900 dark:text-white">
+              직접 포트폴리오 구성하기
+            </h2>
+            <button
+              onClick={() => setShowSmartModal(true)}
+              className="px-2.5 py-1 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-[11px] flex items-center gap-1 shadow-sm transition-all"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              텍스트 일괄 붙여넣기
+            </button>
+          </div>
 
           {/* 종목 검색 */}
           <div className="relative mb-3">
@@ -319,6 +346,13 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({ onComplete }) =>
         <CheckCircle2 className="w-5 h-5" />
         내 포트폴리오 분석 시작하기
       </button>
+
+      {/* 스마트 텍스트 일괄 등록 모달 */}
+      <SmartImportModal
+        isOpen={showSmartModal}
+        onClose={() => setShowSmartModal(false)}
+        onImportPositions={handleSmartBatchImport}
+      />
     </div>
   );
 };

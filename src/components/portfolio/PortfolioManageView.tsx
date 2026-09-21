@@ -1,8 +1,9 @@
 import React, { useState, useRef } from 'react';
-import { PieChart, Plus, Trash2, Edit2, Check, X, Search, AlertCircle, Download, Upload, ShieldCheck } from 'lucide-react';
+import { PieChart, Plus, Trash2, Edit2, Check, X, Search, AlertCircle, Download, Upload, ShieldCheck, Sparkles } from 'lucide-react';
 import { EnrichedPosition } from '../../stores/portfolioStore';
 import { Position } from '../../core/types/models';
 import { SUPPORTED_SYMBOLS } from '../../mock/symbols';
+import { SmartImportModal } from './SmartImportModal';
 
 interface PortfolioManageViewProps {
   positions: EnrichedPosition[];
@@ -32,9 +33,21 @@ export const PortfolioManageView: React.FC<PortfolioManageViewProps> = ({
   onImportPortfolio,
 }) => {
   const [showAddForm, setShowAddForm] = useState(false);
+  const [showSmartModal, setShowSmartModal] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleSmartBatchImport = (newPositions: Omit<Position, 'id' | 'created_at' | 'updated_at'>[]) => {
+    newPositions.forEach((pos) => {
+      onAddPosition(pos);
+    });
+    setStatusMessage({
+      type: 'success',
+      text: `${newPositions.length}개 종목이 스마트 등록되었습니다!`,
+    });
+    setTimeout(() => setStatusMessage(null), 4000);
+  };
 
   // 추가 폼 상태
   const [searchQuery, setSearchQuery] = useState('');
@@ -137,13 +150,22 @@ export const PortfolioManageView: React.FC<PortfolioManageViewProps> = ({
             내 포트폴리오 관리
           </h1>
         </div>
-        <button
-          onClick={() => setShowAddForm(!showAddForm)}
-          className="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center gap-1 shadow-sm transition-all"
-        >
-          {showAddForm ? <X className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
-          {showAddForm ? '닫기' : '종목 추가'}
-        </button>
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={() => setShowSmartModal(true)}
+            className="px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs flex items-center gap-1 shadow-sm transition-all"
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            스마트 등록
+          </button>
+          <button
+            onClick={() => setShowAddForm(!showAddForm)}
+            className="px-2.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 font-bold text-xs flex items-center gap-1 transition-all border border-slate-200 dark:border-slate-700"
+          >
+            {showAddForm ? <X className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
+            {showAddForm ? '닫기' : '직접 추가'}
+          </button>
+        </div>
       </div>
 
       {/* 보안 & 개인화 안내 배너 */}
@@ -438,6 +460,13 @@ export const PortfolioManageView: React.FC<PortfolioManageViewProps> = ({
           );
         })}
       </div>
+
+      {/* 스마트 일괄 등록 모달 */}
+      <SmartImportModal
+        isOpen={showSmartModal}
+        onClose={() => setShowSmartModal(false)}
+        onImportPositions={handleSmartBatchImport}
+      />
     </div>
   );
 };
