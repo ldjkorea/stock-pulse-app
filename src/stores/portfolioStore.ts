@@ -4,6 +4,7 @@ import { StockAnalysis } from '../core/types/analysis';
 import { Alert } from '../core/types/alert';
 import { defaultDataProvider } from '../core/providers/mockDataProvider';
 import { MOCK_ALERTS } from '../mock/mockScenarios';
+import { SUPPORTED_SYMBOLS } from '../mock/symbols';
 
 export interface EnrichedPosition extends Position {
   current_price: number;
@@ -153,26 +154,36 @@ export function usePortfolioStore() {
           results.push({ pos, price, analysis });
         }
 
-        // 총 평가금액 합계 산출
-        let grandTotalValue = 0;
+        const USD_KRW_RATE = 1400; // 원/달러 기준 환율
+
+        // 총 평가금액 합계 산출 (USD 기준 환산 정규화)
+        let grandTotalValueUsd = 0;
         for (const item of results) {
+          const sym = SUPPORTED_SYMBOLS.find((s) => s.id === item.pos.symbol_id);
+          const isKrw = sym?.currency === 'KRW' || item.pos.currency === 'KRW';
           const currentPrice = item.price?.current_price ?? item.pos.average_cost;
-          grandTotalValue += item.pos.quantity * currentPrice;
+          const posVal = item.pos.quantity * currentPrice;
+          grandTotalValueUsd += isKrw ? posVal / USD_KRW_RATE : posVal;
         }
 
         const enriched: EnrichedPosition[] = results.map(({ pos, price, analysis }) => {
+          const sym = SUPPORTED_SYMBOLS.find((s) => s.id === pos.symbol_id);
+          const isKrw = sym?.currency === 'KRW' || pos.currency === 'KRW';
           const currentPrice = price?.current_price ?? pos.average_cost;
           const totalValue = pos.quantity * currentPrice;
           const investedAmount = pos.quantity * pos.average_cost;
           const profitAmount = totalValue - investedAmount;
           const profitPercent = investedAmount > 0 ? (profitAmount / investedAmount) * 100 : 0;
-          const weightPercent = grandTotalValue > 0 ? (totalValue / grandTotalValue) * 100 : 0;
+
+          const posValUsd = isKrw ? totalValue / USD_KRW_RATE : totalValue;
+          const weightPercent = grandTotalValueUsd > 0 ? (posValUsd / grandTotalValueUsd) * 100 : 0;
           const isOverLimit = !!(
             pos.target_max_weight_percent && weightPercent > pos.target_max_weight_percent
           );
 
           return {
             ...pos,
+            currency: sym?.currency || pos.currency || 'USD',
             current_price: currentPrice,
             total_value: Number(totalValue.toFixed(2)),
             invested_amount: Number(investedAmount.toFixed(2)),
@@ -202,9 +213,19 @@ export function usePortfolioStore() {
     };
   }, [positions]);
 
-  // 포트폴리오 종합 통계
-  const totalPortfolioValue = enrichedPositions.reduce((sum, p) => sum + p.total_value, 0);
-  const totalInvestedAmount = enrichedPositions.reduce((sum, p) => sum + p.invested_amount, 0);
+  const USD_KRW_RATE = 1400;
+
+  // 포트폴리오 종합 통계 (USD 기준 환산 집계)
+  const totalPortfolioValue = enrichedPositions.reduce((sum, p) => {
+    const isKrw = p.currency === 'KRW';
+    return sum + (isKrw ? p.total_value / USD_KRW_RATE : p.total_value);
+  }, 0);
+
+  const totalInvestedAmount = enrichedPositions.reduce((sum, p) => {
+    const isKrw = p.currency === 'KRW';
+    return sum + (isKrw ? p.invested_amount / USD_KRW_RATE : p.invested_amount);
+  }, 0);
+
   const totalProfitAmount = totalPortfolioValue - totalInvestedAmount;
   const totalProfitPercent =
     totalInvestedAmount > 0 ? (totalProfitAmount / totalInvestedAmount) * 100 : 0;
@@ -224,8 +245,10 @@ export function usePortfolioStore() {
 
   // 포지션 CRUD
   const addPosition = (newPos: Omit<Position, 'id' | 'created_at' | 'updated_at'>) => {
+    const sym = SUPPORTED_SYMBOLS.find((s) => s.id === newPos.symbol_id);
     const created: Position = {
       ...newPos,
+      currency: sym?.currency || newPos.currency || 'USD',
       id: `POS_${Date.now()}`,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),

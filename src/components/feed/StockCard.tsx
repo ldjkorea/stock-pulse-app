@@ -108,13 +108,17 @@ export const StockCard: React.FC<StockCardProps> = ({ item, onClick }) => {
           <div>
             <div className="text-[10px] text-slate-400">현재가</div>
             <div className="text-xs font-bold font-mono text-slate-800 dark:text-slate-200 mt-0.5">
-              ${item.current_price.toFixed(2)}
+              {item.currency === 'KRW'
+                ? `₩${Math.round(item.current_price).toLocaleString()}`
+                : `$${item.current_price.toFixed(2)}`}
             </div>
           </div>
           <div>
             <div className="text-[10px] text-slate-400">평균매수가</div>
             <div className="text-xs font-bold font-mono text-slate-800 dark:text-slate-200 mt-0.5">
-              ${item.average_cost.toFixed(2)}
+              {item.currency === 'KRW'
+                ? `₩${Math.round(item.average_cost).toLocaleString()}`
+                : `$${item.average_cost.toFixed(2)}`}
             </div>
           </div>
           <div>

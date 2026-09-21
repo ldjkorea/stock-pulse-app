@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Sparkles, X, Check, AlertCircle, Plus, Info, ArrowRight } from 'lucide-react';
 import { parseSmartStockText, ParsedStockItem } from '../../core/utils/smartStockParser';
 import { Position } from '../../core/types/models';
+import { SUPPORTED_SYMBOLS } from '../../mock/symbols';
 
 interface SmartImportModalProps {
   isOpen: boolean;
@@ -55,16 +56,19 @@ export const SmartImportModal: React.FC<SmartImportModalProps> = ({
   const handleConfirm = () => {
     if (activeItems.length === 0) return;
 
-    const payload: Omit<Position, 'id' | 'created_at' | 'updated_at'>[] = activeItems.map((item) => ({
-      user_id: 'USER_1',
-      portfolio_id: 'PF_1',
-      symbol_id: item.symbol_id,
-      quantity: item.quantity,
-      average_cost: item.average_cost,
-      currency: 'USD',
-      target_max_weight_percent: item.target_max_weight_percent || 20,
-      investment_horizon: 'MEDIUM',
-    }));
+    const payload: Omit<Position, 'id' | 'created_at' | 'updated_at'>[] = activeItems.map((item) => {
+      const sym = SUPPORTED_SYMBOLS.find((s) => s.id === item.symbol_id);
+      return {
+        user_id: 'USER_1',
+        portfolio_id: 'PF_1',
+        symbol_id: item.symbol_id,
+        quantity: item.quantity,
+        average_cost: item.average_cost,
+        currency: sym?.currency || 'USD',
+        target_max_weight_percent: item.target_max_weight_percent || 20,
+        investment_horizon: 'MEDIUM',
+      };
+    });
 
     onImportPositions(payload);
     setTextInput('');
@@ -180,7 +184,9 @@ export const SmartImportModal: React.FC<SmartImportModalProps> = ({
                     </span>
                     {item.cost_is_estimated && (
                       <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300">
-                        시장가 추정
+                        {SUPPORTED_SYMBOLS.find((s) => s.id === item.symbol_id)?.currency === 'KRW'
+                          ? `시장가 추정 (₩${Math.round(item.average_cost).toLocaleString()})`
+                          : `시장가 추정 ($${item.average_cost.toFixed(2)})`}
                       </span>
                     )}
                   </div>
@@ -208,10 +214,12 @@ export const SmartImportModal: React.FC<SmartImportModalProps> = ({
                     />
                   </div>
                   <div>
-                    <label className="text-[10px] text-slate-400 block mb-0.5">평균단가 ($)</label>
+                    <label className="text-[10px] text-slate-400 block mb-0.5">
+                      평균단가 ({SUPPORTED_SYMBOLS.find((s) => s.id === item.symbol_id)?.currency === 'KRW' ? '₩' : '$'})
+                    </label>
                     <input
                       type="number"
-                      step="0.1"
+                      step={SUPPORTED_SYMBOLS.find((s) => s.id === item.symbol_id)?.currency === 'KRW' ? '100' : '0.1'}
                       min="0.1"
                       value={item.average_cost}
                       onChange={(e) =>

@@ -40,6 +40,12 @@ export const DEFAULT_CURRENT_PRICES: Record<string, number> = {
   NOW: 840.00,
   AMAT: 210.00,
   CEG: 280.97,
+  SPCX: 166.96,
+  '047050': 62500,
+  '005930': 73500,
+  '000660': 188000,
+  '005380': 240000,
+  '035420': 190000,
 };
 
 // 별칭 매핑 테이블
@@ -162,6 +168,42 @@ const SYMBOL_ALIASES: Record<string, string> = {
   컨스텔레이션에너지: 'CEG',
   '컨스텔레이션 에너지': 'CEG',
   constellation: 'CEG',
+
+  // SPCX (스페이스X)
+  spcx: 'SPCX',
+  '스페이스x': 'SPCX',
+  스페이스엑스: 'SPCX',
+  스페이스: 'SPCX',
+  spacex: 'SPCX',
+
+  // 047050 (포스코인터내셔널)
+  '047050': '047050',
+  포스코인터내셔널: '047050',
+  포스코인터: '047050',
+  poscointernational: '047050',
+
+  // 005930 (삼성전자)
+  '005930': '005930',
+  삼성전자: '005930',
+  삼전: '005930',
+  samsung: '005930',
+
+  // 000660 (SK하이닉스)
+  '000660': '000660',
+  sk하이닉스: '000660',
+  하이닉스: '000660',
+  hynix: '000660',
+
+  // 005380 (현대차)
+  '005380': '005380',
+  현대차: '005380',
+  현대자동차: '005380',
+  hyundai: '005380',
+
+  // 035420 (NAVER)
+  '035420': '035420',
+  naver: '035420',
+  네이버: '035420',
 };
 
 // 미지원 종목 식별 (친절한 가이드 제공용)
@@ -177,17 +219,10 @@ const UNSUPPORTED_ALIASES: Record<string, string> = {
   코인베이스: '코인베이스 (COIN)',
   baba: '알리바바 (BABA)',
   알리바바: '알리바바 (BABA)',
-  삼성전자: '삼성전자 (국내주식)',
-  삼전: '삼성전자 (국내주식)',
-  sk하이닉스: 'SK하이닉스 (국내주식)',
-  하이닉스: 'SK하이닉스 (국내주식)',
-  spcx: '스페이스X (SPCX - 비상장/특수펀드)',
-  '스페이스x': '스페이스X (SPCX - 비상장/특수펀드)',
-  spacex: '스페이스X (SPCX - 비상장/특수펀드)',
-  스페이스엑스: '스페이스X (SPCX - 비상장/특수펀드)',
-  포스코인터내셔널: '포스코인터내셔널 (047050 - 국내 KOSPI)',
-  '047050': '포스코인터내셔널 (047050 - 국내 KOSPI)',
-  포스코인터: '포스코인터내셔널 (047050 - 국내 KOSPI)',
+  카카오: '카카오 (035720 - 향후 지원 예정)',
+  '035720': '카카오 (035720 - 향후 지원 예정)',
+  lg에너지솔루션: 'LG에너지솔루션 (373220 - 향후 지원 예정)',
+  '373220': 'LG에너지솔루션 (373220 - 향후 지원 예정)',
 };
 
 /**
@@ -277,14 +312,23 @@ export function parseSmartStockText(inputText: string): ParseResult {
       }
     }
 
-    // 5. 명시적 단위가 없는데 숫자가 2개 이상 나열된 경우 (예: "NVDA 15 140")
+    // 5. 명시적 단위가 없는데 숫자가 나열된 경우 (예: "NVDA 15 140")
     if (quantity === 0 || averageCost === 0) {
-      const allNumbers = segment.match(/\b\d+(?:\.\d+)?\b/g);
-      if (allNumbers && allNumbers.length >= 2) {
-        if (quantity === 0) quantity = parseFloat(allNumbers[0]);
-        if (averageCost === 0) averageCost = parseFloat(allNumbers[1]);
-      } else if (allNumbers && allNumbers.length === 1 && quantity === 0) {
-        quantity = parseFloat(allNumbers[0]);
+      // 6자리 한국 종목코드(047050 등) 및 이미 명시적으로 추출된 수량 부분은 숫자 후보에서 제외
+      const segmentWithoutCodes = segment
+        .replace(/\b\d{6}\b/g, '')
+        .replace(/(\d+(?:\.\d+)?)\s*(?:주|개|ea|shares?)/gi, '');
+
+      const remainingNumbers = segmentWithoutCodes.match(/\b\d+(?:\.\d+)?\b/g);
+      if (remainingNumbers && remainingNumbers.length >= 2 && quantity === 0 && averageCost === 0) {
+        quantity = parseFloat(remainingNumbers[0]);
+        averageCost = parseFloat(remainingNumbers[1]);
+      } else if (remainingNumbers && remainingNumbers.length >= 1) {
+        if (quantity === 0) {
+          quantity = parseFloat(remainingNumbers[0]);
+        } else if (averageCost === 0) {
+          averageCost = parseFloat(remainingNumbers[0]);
+        }
       }
     }
 

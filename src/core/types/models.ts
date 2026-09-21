@@ -9,7 +9,7 @@ export interface Symbol {
   name_ko: string;        // '엔비디아'
   name_en: string;        // 'NVIDIA Corporation'
   sector: string;         // '반도체 & AI 하드웨어'
-  currency: 'USD';
+  currency: 'USD' | 'KRW';
   is_supported: boolean;  // MVP 20개 지원 여부
   description: string;
 }
@@ -39,8 +39,8 @@ export interface Position {
   portfolio_id: string;
   symbol_id: string;
   quantity: number;                     // 보유수량
-  average_cost: number;                 // 평균매수가 (USD)
-  currency: 'USD';
+  average_cost: number;                 // 평균매수가 (USD 또는 KRW)
+  currency: 'USD' | 'KRW';
   target_max_weight_percent?: number;   // 사용자가 설정한 종목별 최대 허용 비중 (예: 20%)
   investment_horizon?: 'SHORT' | 'MEDIUM' | 'LONG'; // 선택적 투자기간
   created_at: string;

@@ -442,11 +442,19 @@ export const PortfolioManageView: React.FC<PortfolioManageViewProps> = ({
                   </div>
                   <div>
                     <span className="text-[10px] text-slate-400">평균매수가</span>
-                    <p className="font-mono font-bold mt-0.5">${pos.average_cost.toFixed(2)}</p>
+                    <p className="font-mono font-bold mt-0.5">
+                      {pos.currency === 'KRW'
+                        ? `₩${Math.round(pos.average_cost).toLocaleString()}`
+                        : `$${pos.average_cost.toFixed(2)}`}
+                    </p>
                   </div>
                   <div>
                     <span className="text-[10px] text-slate-400">평가금액</span>
-                    <p className="font-mono font-bold mt-0.5">${pos.total_value.toFixed(0)}</p>
+                    <p className="font-mono font-bold mt-0.5">
+                      {pos.currency === 'KRW'
+                        ? `₩${Math.round(pos.total_value).toLocaleString()}`
+                        : `$${pos.total_value.toFixed(0)}`}
+                    </p>
                   </div>
                   <div>
                     <span className="text-[10px] text-slate-400">비중 (한도)</span>

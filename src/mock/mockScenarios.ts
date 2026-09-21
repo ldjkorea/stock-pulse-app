@@ -110,6 +110,42 @@ export const MOCK_PRICES: Record<string, PriceSnapshot> = {
     market_cap_billions: 89,
     as_of: '2026-09-21 16:00 EDT',
   },
+  SPCX: {
+    id: 'PR_SPCX',
+    symbol_id: 'SPCX',
+    current_price: 166.96,
+    change_amount: 2.10,
+    change_percent: 1.27,
+    market_cap_billions: 210,
+    as_of: '2026-09-21 16:00 EDT',
+  },
+  '047050': {
+    id: 'PR_047050',
+    symbol_id: '047050',
+    current_price: 62500,
+    change_amount: 1200,
+    change_percent: 1.95,
+    market_cap_billions: 11,
+    as_of: '2026-09-22 15:30 KST',
+  },
+  '005930': {
+    id: 'PR_005930',
+    symbol_id: '005930',
+    current_price: 73500,
+    change_amount: 800,
+    change_percent: 1.10,
+    market_cap_billions: 430,
+    as_of: '2026-09-22 15:30 KST',
+  },
+  '000660': {
+    id: 'PR_000660',
+    symbol_id: '000660',
+    current_price: 188000,
+    change_amount: 4500,
+    change_percent: 2.45,
+    market_cap_billions: 135,
+    as_of: '2026-09-22 15:30 KST',
+  },
 };
 
 // 기본 주가 생성 헬퍼 (나머지 15개 종목용)

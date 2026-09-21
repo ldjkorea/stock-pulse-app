@@ -45,31 +45,38 @@ describe('smartStockParser', () => {
     expect(googl?.cost_is_estimated).toBe(true);
   });
 
-  it('미지원 종목(테슬라, 삼전 등)이 포함된 경우 미지원 목록으로 분리한다', () => {
-    const text = '엔비디아 10주 130달러, 테슬라 20주 240불, 삼전 50주';
+  it('미지원 종목(테슬라 등)이 포함된 경우 미지원 목록으로 분리한다', () => {
+    const text = '엔비디아 10주 130달러, 테슬라 20주 240불, 카카오 50주';
     const result = parseSmartStockText(text);
 
     expect(result.items).toHaveLength(1);
     expect(result.items[0].symbol_id === 'NVDA').toBe(true);
     expect(result.unsupported.some((u) => u.includes('테슬라'))).toBe(true);
-    expect(result.unsupported.some((u) => u.includes('삼성전자'))).toBe(true);
+    expect(result.unsupported.some((u) => u.includes('카카오'))).toBe(true);
   });
 
-  it('사용자가 입력한 실제 탭 구분 데이터(스페이스X, 컨스텔레이션 에너지, 포스코인터내셔널)를 올바르게 처리한다', () => {
+  it('사용자가 입력한 실제 탭 구분 데이터(스페이스X, 컨스텔레이션 에너지, 포스코인터내셔널)를 3종목 모두 성공적으로 인식한다', () => {
     const text = `스페이스X\tSPCX\t1주\t$166.96
 컨스텔레이션 에너지\tCEG\t8주\t$280.97
 포스코인터내셔널\t047050\t15주\t미확인`;
     const result = parseSmartStockText(text);
 
-    // CEG는 이제 지원 종목이므로 성공적으로 인식되어야 함
-    expect(result.items).toHaveLength(1);
-    const ceg = result.items[0];
-    expect(ceg.symbol_id).toBe('CEG');
-    expect(ceg.quantity).toBe(8);
-    expect(ceg.average_cost).toBe(280.97);
+    expect(result.items).toHaveLength(3);
 
-    // 스페이스X와 포스코인터내셔널은 미지원 목록에 명확히 분류되어야 함
-    expect(result.unsupported.some((u) => u.includes('스페이스X'))).toBe(true);
-    expect(result.unsupported.some((u) => u.includes('포스코인터내셔널'))).toBe(true);
+    const spcx = result.items.find((i) => i.symbol_id === 'SPCX');
+    expect(spcx).toBeDefined();
+    expect(spcx?.quantity).toBe(1);
+    expect(spcx?.average_cost).toBe(166.96);
+
+    const ceg = result.items.find((i) => i.symbol_id === 'CEG');
+    expect(ceg).toBeDefined();
+    expect(ceg?.quantity).toBe(8);
+    expect(ceg?.average_cost).toBe(280.97);
+
+    const posco = result.items.find((i) => i.symbol_id === '047050');
+    expect(posco).toBeDefined();
+    expect(posco?.quantity).toBe(15);
+    expect(posco?.average_cost).toBe(62500); // 미확인 시 기본 시장가 62,500원 적용
+    expect(posco?.cost_is_estimated).toBe(true);
   });
 });
