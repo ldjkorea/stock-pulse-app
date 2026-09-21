@@ -1,0 +1,16 @@
+{
+  "name": "Stock Pulse - 주식 포트폴리오 분석",
+  "short_name": "StockPulse",
+  "description": "내가 보유한 주식의 중요한 변화와 투자 매력도를 카드 한 장으로 이해하는 서비스",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#090d16",
+  "theme_color": "#2563eb",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml"
+    }
+  ]
+}
