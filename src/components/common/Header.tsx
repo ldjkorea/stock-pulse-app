@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bell, Moon, Sun, Smartphone } from 'lucide-react';
+import { Bell, Moon, Sun, Smartphone, Sparkles } from 'lucide-react';
 import { ThemeMode } from '../../stores/themeStore';
 
 interface HeaderProps {
@@ -9,6 +9,7 @@ interface HeaderProps {
   onOpenAlerts: () => void;
   onOpenSettings: () => void;
   onOpenInstallModal?: () => void;
+  onOpenSmartImport?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -17,6 +18,7 @@ export const Header: React.FC<HeaderProps> = ({
   unreadCount,
   onOpenAlerts,
   onOpenInstallModal,
+  onOpenSmartImport,
 }) => {
   return (
     <header className="sticky top-0 z-40 w-full backdrop-blur-md bg-white/80 dark:bg-slate-950/80 border-b border-slate-200/80 dark:border-slate-800/80">
@@ -42,7 +44,20 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         {/* 우측 아이콘 액션 */}
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1.5">
+          {/* 스마트 주식 일괄 등록 버튼 */}
+          {onOpenSmartImport && (
+            <button
+              onClick={onOpenSmartImport}
+              title="내 주식 스마트 일괄 등록"
+              className="px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white transition-all flex items-center gap-1 text-xs font-bold shadow-sm"
+              aria-label="스마트 등록"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>스마트 등록</span>
+            </button>
+          )}
+
           {/* 스마트폰 앱 설치 버튼 */}
           {onOpenInstallModal && (
             <button

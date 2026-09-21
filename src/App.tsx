@@ -10,6 +10,7 @@ import { StockDetailView } from './components/detail/StockDetailView';
 import { PortfolioManageView } from './components/portfolio/PortfolioManageView';
 import { AlertsView } from './components/alerts/AlertsView';
 import { SettingsView } from './components/settings/SettingsView';
+import { SmartImportModal } from './components/portfolio/SmartImportModal';
 import { SUPPORTED_SYMBOLS } from './mock/symbols';
 import { defaultDataProvider } from './core/providers/mockDataProvider';
 import { StockAnalysis } from './core/types/analysis';
@@ -41,6 +42,14 @@ export function App() {
   const [selectedStockId, setSelectedStockId] = useState<string | null>(null);
   const [dynamicAnalysis, setDynamicAnalysis] = useState<StockAnalysis | null>(null);
   const [isInstallModalOpen, setIsInstallModalOpen] = useState(false);
+  const [isSmartModalOpen, setIsSmartModalOpen] = useState(false);
+
+  // 스마트 일괄 등록 처리
+  const handleSmartBatchImport = (newPositions: Parameters<typeof addPosition>[0][]) => {
+    newPositions.forEach((pos) => {
+      addPosition(pos);
+    });
+  };
 
   // 종목 상세 선택 처리
   const handleSelectStock = async (symbolId: string) => {
@@ -106,6 +115,7 @@ export function App() {
         onOpenAlerts={() => setActiveTab('alerts')}
         onOpenSettings={() => setActiveTab('settings')}
         onOpenInstallModal={() => setIsInstallModalOpen(true)}
+        onOpenSmartImport={() => setIsSmartModalOpen(true)}
       />
 
       {/* 탭별 뷰 컨텐츠 */}
@@ -115,6 +125,7 @@ export function App() {
             positions={enrichedPositions}
             onSelectStock={handleSelectStock}
             onOpenPortfolioManage={() => setActiveTab('portfolio')}
+            onOpenSmartImport={() => setIsSmartModalOpen(true)}
           />
         )}
 
@@ -169,6 +180,13 @@ export function App() {
       <PWAInstallModal
         isOpen={isInstallModalOpen}
         onClose={() => setIsInstallModalOpen(false)}
+      />
+
+      {/* 스마트 일괄 등록 모달 */}
+      <SmartImportModal
+        isOpen={isSmartModalOpen}
+        onClose={() => setIsSmartModalOpen(false)}
+        onImportPositions={handleSmartBatchImport}
       />
     </div>
   );

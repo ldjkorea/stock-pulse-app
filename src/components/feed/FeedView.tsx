@@ -2,18 +2,20 @@ import React, { useState } from 'react';
 import { EnrichedPosition } from '../../stores/portfolioStore';
 import { FeedHeader } from './FeedHeader';
 import { StockCard } from './StockCard';
-import { PlusCircle } from 'lucide-react';
+import { PlusCircle, Sparkles } from 'lucide-react';
 
 interface FeedViewProps {
   positions: EnrichedPosition[];
   onSelectStock: (symbolId: string) => void;
   onOpenPortfolioManage: () => void;
+  onOpenSmartImport?: () => void;
 }
 
 export const FeedView: React.FC<FeedViewProps> = ({
   positions,
   onSelectStock,
   onOpenPortfolioManage,
+  onOpenSmartImport,
 }) => {
   const [isSystemDelayed, setIsSystemDelayed] = useState(false);
 
@@ -32,6 +34,32 @@ export const FeedView: React.FC<FeedViewProps> = ({
         isSystemDelayed={isSystemDelayed}
         onToggleDelaySimulation={() => setIsSystemDelayed((prev) => !prev)}
       />
+
+      {/* 1.5 첫 화면 스마트 등록 배너 */}
+      {onOpenSmartImport && (
+        <div className="my-3 p-3.5 rounded-2xl bg-gradient-to-r from-blue-600/10 via-indigo-600/10 to-purple-600/10 border border-blue-500/30 flex items-center justify-between shadow-sm">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-sm flex-shrink-0">
+              <Sparkles className="w-4 h-4" />
+            </div>
+            <div>
+              <h3 className="text-xs font-black text-slate-900 dark:text-white">
+                내 주식 한번에 넣기
+              </h3>
+              <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                대략 적거나 증권사 복사본 붙여넣기
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={onOpenSmartImport}
+            className="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center gap-1 shadow-sm transition-all flex-shrink-0"
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            스마트 등록
+          </button>
+        </div>
+      )}
 
       {/* 2. 포트폴리오 카드 피드 */}
       {positions.length === 0 ? (
