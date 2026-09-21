@@ -201,4 +201,14 @@ export const SUPPORTED_SYMBOLS: Symbol[] = [
     is_supported: true,
     description: '박막 증착, 식각, 이온 주입 등 반도체 제조 핵심 장비 세계 1위 공급사',
   },
+  {
+    id: 'CEG',
+    ticker: 'CEG',
+    name_ko: '컨스텔레이션 에너지',
+    name_en: 'Constellation Energy Corporation',
+    sector: 'AI 전력 & 원자력 발전',
+    currency: 'USD',
+    is_supported: true,
+    description: '미국 최대 청정 원자력 발전 사업자, 빅테크 AI 데이터센터(MSFT 등) 전력 장기 공급 리더',
+  },
 ];

@@ -54,4 +54,22 @@ describe('smartStockParser', () => {
     expect(result.unsupported.some((u) => u.includes('테슬라'))).toBe(true);
     expect(result.unsupported.some((u) => u.includes('삼성전자'))).toBe(true);
   });
+
+  it('사용자가 입력한 실제 탭 구분 데이터(스페이스X, 컨스텔레이션 에너지, 포스코인터내셔널)를 올바르게 처리한다', () => {
+    const text = `스페이스X\tSPCX\t1주\t$166.96
+컨스텔레이션 에너지\tCEG\t8주\t$280.97
+포스코인터내셔널\t047050\t15주\t미확인`;
+    const result = parseSmartStockText(text);
+
+    // CEG는 이제 지원 종목이므로 성공적으로 인식되어야 함
+    expect(result.items).toHaveLength(1);
+    const ceg = result.items[0];
+    expect(ceg.symbol_id).toBe('CEG');
+    expect(ceg.quantity).toBe(8);
+    expect(ceg.average_cost).toBe(280.97);
+
+    // 스페이스X와 포스코인터내셔널은 미지원 목록에 명확히 분류되어야 함
+    expect(result.unsupported.some((u) => u.includes('스페이스X'))).toBe(true);
+    expect(result.unsupported.some((u) => u.includes('포스코인터내셔널'))).toBe(true);
+  });
 });

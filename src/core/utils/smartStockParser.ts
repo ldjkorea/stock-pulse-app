@@ -39,6 +39,7 @@ export const DEFAULT_CURRENT_PRICES: Record<string, number> = {
   TXN: 205.00,
   NOW: 840.00,
   AMAT: 210.00,
+  CEG: 280.97,
 };
 
 // 별칭 매핑 테이블
@@ -154,6 +155,13 @@ const SYMBOL_ALIASES: Record<string, string> = {
   '어플라이드 머티어리얼즈': 'AMAT',
   어플라이드: 'AMAT',
   applied: 'AMAT',
+
+  // CEG (Constellation Energy)
+  ceg: 'CEG',
+  컨스텔레이션: 'CEG',
+  컨스텔레이션에너지: 'CEG',
+  '컨스텔레이션 에너지': 'CEG',
+  constellation: 'CEG',
 };
 
 // 미지원 종목 식별 (친절한 가이드 제공용)
@@ -173,6 +181,13 @@ const UNSUPPORTED_ALIASES: Record<string, string> = {
   삼전: '삼성전자 (국내주식)',
   sk하이닉스: 'SK하이닉스 (국내주식)',
   하이닉스: 'SK하이닉스 (국내주식)',
+  spcx: '스페이스X (SPCX - 비상장/특수펀드)',
+  '스페이스x': '스페이스X (SPCX - 비상장/특수펀드)',
+  spacex: '스페이스X (SPCX - 비상장/특수펀드)',
+  스페이스엑스: '스페이스X (SPCX - 비상장/특수펀드)',
+  포스코인터내셔널: '포스코인터내셔널 (047050 - 국내 KOSPI)',
+  '047050': '포스코인터내셔널 (047050 - 국내 KOSPI)',
+  포스코인터: '포스코인터내셔널 (047050 - 국내 KOSPI)',
 };
 
 /**
@@ -216,7 +231,18 @@ export function parseSmartStockText(inputText: string): ParseResult {
       }
     }
 
-    if (!matchedSymbolId) continue;
+    if (!matchedSymbolId) {
+      // 탭이나 공백으로 분리된 첫 번째 단어에서 종목명 후보 추출
+      const tokens = segment.split(/[\t,/\s]+/).filter(Boolean);
+      const candidate = tokens[0]?.trim();
+      if (candidate && candidate.length >= 2 && !/^\d+$/.test(candidate) && !/^[\$#@%]/.test(candidate)) {
+        const alreadyCaptured = Array.from(unsupportedSet).some((u) => u.includes(candidate));
+        if (!alreadyCaptured) {
+          unsupportedSet.add(`${candidate} (분석 미지원)`);
+        }
+      }
+      continue;
+    }
 
     const sym = SUPPORTED_SYMBOLS.find((s) => s.id === matchedSymbolId);
     if (!sym) continue;

@@ -101,6 +101,15 @@ export const MOCK_PRICES: Record<string, PriceSnapshot> = {
     market_cap_billions: 890,
     as_of: '2026-09-21 16:00 EDT',
   },
+  CEG: {
+    id: 'PR_CEG',
+    symbol_id: 'CEG',
+    current_price: 280.97,
+    change_amount: 5.40,
+    change_percent: 1.96,
+    market_cap_billions: 89,
+    as_of: '2026-09-21 16:00 EDT',
+  },
 };
 
 // 기본 주가 생성 헬퍼 (나머지 15개 종목용)
