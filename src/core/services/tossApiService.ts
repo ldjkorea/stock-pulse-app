@@ -1,4 +1,4 @@
-import { Position, Symbol } from '../types/models';
+import { Position } from '../types/models';
 import { SUPPORTED_SYMBOLS } from '../../mock/symbols';
 
 export interface TossCredentials {
@@ -111,7 +111,14 @@ export class TossApiService {
   }
 
   /**
-   * HTML 및 비정상 응답을 방어하는 안전한 JSON 파싱 헬퍼
+   * 토큰 캐시 강제 무효화
+   */
+  public invalidateToken(): void {
+    localStorage.removeItem(STORAGE_KEY_TOKEN);
+  }
+
+  /**
+   * HTML 및 비정상 응답을 방어하는 안전한 JSON 파싱 헬퍼 (토스증권 error 객체 완벽 대응)
    */
   private async parseJsonResponse(res: Response, endpointName: string): Promise<any> {
     const rawText = await res.text();
@@ -131,14 +138,26 @@ export class TossApiService {
     }
 
     if (!res.ok) {
+      // 401 Unauthorized인 경우 캐시된 토큰 무효화
+      if (res.status === 401) {
+        this.invalidateToken();
+      }
+
       let errorMsg = `토스증권 API 오류 (${res.status})`;
       try {
         const errJson = JSON.parse(trimmed);
-        if (errJson.message) errorMsg = errJson.message;
-        else if (errJson.error_description) errorMsg = errJson.error_description;
-        else if (errJson.error) errorMsg = String(errJson.error);
+        if (errJson.error && typeof errJson.error === 'object') {
+          const innerMsg = errJson.error.message || errJson.error.code || JSON.stringify(errJson.error);
+          errorMsg = `${innerMsg}${errJson.error.code ? ` [코드: ${errJson.error.code}]` : ''}`;
+        } else if (errJson.message) {
+          errorMsg = typeof errJson.message === 'string' ? errJson.message : JSON.stringify(errJson.message);
+        } else if (errJson.error_description) {
+          errorMsg = String(errJson.error_description);
+        } else if (errJson.error) {
+          errorMsg = typeof errJson.error === 'string' ? errJson.error : JSON.stringify(errJson.error);
+        }
       } catch (_) {
-        if (trimmed) errorMsg += `: ${trimmed.slice(0, 100)}`;
+        if (trimmed) errorMsg += `: ${trimmed.slice(0, 150)}`;
       }
       throw new Error(errorMsg);
     }
@@ -153,7 +172,7 @@ export class TossApiService {
   /**
    * OAuth2 Access Token 발급
    */
-  public async getAccessToken(clientId?: string, clientSecret?: string): Promise<string> {
+  public async getAccessToken(clientId?: string, clientSecret?: string, forceRefresh = false): Promise<string> {
     const creds = this.getCredentials();
     const cId = clientId || creds?.clientId;
     const cSecret = clientSecret || creds?.clientSecret;
@@ -162,10 +181,12 @@ export class TossApiService {
       throw new Error('토스증권 Client ID와 Client Secret을 먼저 입력해주세요.');
     }
 
-    // 캐시 확인
-    const cached = this.getCachedToken();
-    if (cached && !clientId) {
-      return cached;
+    // 캐시 확인 (강제 갱신이 아닐 때)
+    if (!forceRefresh) {
+      const cached = this.getCachedToken();
+      if (cached && !clientId) {
+        return cached;
+      }
     }
 
     const baseUrl = this.getBaseUrl();
@@ -223,20 +244,27 @@ export class TossApiService {
    * 응답: { result: [ { accountNo: "...", accountSeq: 1, accountType: "BROKERAGE" } ] }
    */
   public async getAccounts(accessToken?: string): Promise<TossAccountInfo[]> {
-    const token = accessToken || (await this.getAccessToken());
+    let token = accessToken || (await this.getAccessToken());
     const baseUrl = this.getBaseUrl();
     const url = `${baseUrl}/api/v1/accounts`;
 
-    let res: Response;
-    try {
+    let res = await fetch(url, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    // 401이면 토큰 만료 가능성이 있으므로 즉시 토큰 강제 갱신 후 1회 재시도
+    if (res.status === 401) {
+      this.invalidateToken();
+      token = await this.getAccessToken(undefined, undefined, true);
       res = await fetch(url, {
         method: 'GET',
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
-    } catch (netErr: any) {
-      throw new Error(`계좌 목록 네트워크 요청 실패: ${netErr.message}`);
     }
 
     const data = await this.parseJsonResponse(res, '계좌 목록 조회');
@@ -271,31 +299,37 @@ export class TossApiService {
    * 응답: { result: { items: [ { symbol, name, quantity, averagePurchasePrice, lastPrice, currency, marketCountry } ] } }
    */
   public async getHoldings(accountSeq?: string, accessToken?: string): Promise<TossHoldingItem[]> {
-    const token = accessToken || (await this.getAccessToken());
+    let token = accessToken || (await this.getAccessToken());
     let seq = accountSeq;
 
+    // 계좌 번호가 없으면 계좌 목록을 조회하여 첫 번째 계좌 자동 선택
     if (!seq) {
       const creds = this.getCredentials();
-      seq = creds?.accountSeq;
-      if (!seq) {
-        // 계좌 목록 조회해서 첫 번째 계좌 사용
-        const accounts = await this.getAccounts(token);
-        if (accounts.length === 0) {
-          throw new Error('토스증권에 개설된 주식 계좌를 찾을 수 없습니다. 토스증권 앱에서 증권 계좌가 정상 개설되어 있는지 확인해주세요.');
-        }
-        seq = accounts[0].accountSeq;
-        // 저장해둠
-        if (creds) {
-          this.saveCredentials({ ...creds, accountSeq: seq });
-        }
+      const accounts = await this.getAccounts(token);
+      if (accounts.length === 0) {
+        throw new Error('토스증권에 개설된 주식 계좌를 찾을 수 없습니다. 토스증권 앱에서 증권 계좌가 정상 개설되어 있는지 확인해주세요.');
+      }
+      seq = accounts[0].accountSeq;
+      if (creds) {
+        this.saveCredentials({ ...creds, accountSeq: seq });
       }
     }
 
     const baseUrl = this.getBaseUrl();
     const url = `${baseUrl}/api/v1/holdings`;
 
-    let res: Response;
-    try {
+    let res = await fetch(url, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'X-Tossinvest-Account': String(seq),
+      },
+    });
+
+    // 401이면 토큰 강제 갱신 후 1회 재시도
+    if (res.status === 401) {
+      this.invalidateToken();
+      token = await this.getAccessToken(undefined, undefined, true);
       res = await fetch(url, {
         method: 'GET',
         headers: {
@@ -303,8 +337,6 @@ export class TossApiService {
           'X-Tossinvest-Account': String(seq),
         },
       });
-    } catch (netErr: any) {
-      throw new Error(`보유 주식 잔고 네트워크 요청 실패: ${netErr.message}`);
     }
 
     const data = await this.parseJsonResponse(res, '보유 주식 잔고 조회');
@@ -363,7 +395,21 @@ export class TossApiService {
     syncedCount: number;
     unsupportedCount: number;
   }> {
-    const holdings = await this.getHoldings();
+    // 계좌 목록부터 새로 확인하여 accountSeq 보장
+    const creds = this.getCredentials();
+    const token = await this.getAccessToken();
+    const accounts = await this.getAccounts(token);
+
+    if (accounts.length === 0) {
+      throw new Error('토스증권에 개설된 주식 계좌를 찾을 수 없습니다.');
+    }
+
+    const activeSeq = accounts[0].accountSeq;
+    if (creds) {
+      this.saveCredentials({ ...creds, accountSeq: activeSeq });
+    }
+
+    const holdings = await this.getHoldings(activeSeq, token);
     const convertedPositions: Position[] = [];
 
     for (const h of holdings) {
@@ -403,10 +449,10 @@ export class TossApiService {
     }
 
     // 인증정보에 최종 동기화 시간 기록
-    const creds = this.getCredentials();
     if (creds) {
       this.saveCredentials({
         ...creds,
+        accountSeq: activeSeq,
         lastConnectedAt: new Date().toLocaleString('ko-KR'),
       });
     }

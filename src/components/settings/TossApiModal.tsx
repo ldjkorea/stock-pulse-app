@@ -86,11 +86,30 @@ export const TossApiModal: React.FC<TossApiModalProps> = ({
         description: `총 ${result.syncedCount}개 종목 잔고를 성공적으로 가져왔습니다. 아래 [포트폴리오에 적용]을 누르면 내 주식으로 등록됩니다.`,
       });
     } catch (err: any) {
-      console.error(err);
+      console.error('토스증권 연동 오류:', err);
+      let desc = '토스증권 API 연결 중 오류가 발생했습니다. 토스 개발자 센터의 IP 등록 및 키를 확인해주세요.';
+
+      if (typeof err === 'string') {
+        desc = err;
+      } else if (err?.message && typeof err.message === 'string' && err.message !== '[object Object]') {
+        desc = err.message;
+      } else if (err?.message && typeof err.message === 'object') {
+        desc = err.message.message || JSON.stringify(err.message);
+      } else if (err?.error) {
+        desc = typeof err.error === 'string' ? err.error : err.error.message || JSON.stringify(err.error);
+      } else if (err) {
+        try {
+          const stringified = JSON.stringify(err);
+          if (stringified !== '{}') desc = stringified;
+        } catch (_) {
+          desc = String(err);
+        }
+      }
+
       setStatusMessage({
         type: 'error',
         title: '연동 실패',
-        description: err.message || '토스증권 API 연결 중 오류가 발생했습니다. IP 등록 여부와 키 값을 확인해주세요.',
+        description: desc,
       });
       setPreviewPositions(null);
     } finally {
