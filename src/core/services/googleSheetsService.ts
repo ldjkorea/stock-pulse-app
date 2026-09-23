@@ -156,9 +156,13 @@ export class GoogleSheetsService {
       };
     } catch (err: any) {
       console.error('구글 시트 저장 실패:', err);
+      const isFailedToFetch = String(err?.message || '').toLowerCase().includes('failed to fetch');
+      const errorMsg = isFailedToFetch
+        ? '네트워크 연결 실패 (Failed to fetch). 구글 앱스 스크립트 배포 시 [액세스 권한]이 "모든 사용자(Anyone)"로 설정되어 있는지, URL 끝이 "/exec"인지 확인해주세요!'
+        : (err.message || '네트워크 연결 실패');
       return {
         success: false,
-        message: `구글 시트 저장 중 오류: ${err.message || '네트워크 연결 실패'}`,
+        message: `구글 시트 저장 중 오류: ${errorMsg}`,
       };
     }
   }
@@ -246,9 +250,13 @@ export class GoogleSheetsService {
       };
     } catch (err: any) {
       console.error('구글 시트 불러오기 실패:', err);
+      const isFailedToFetch = String(err?.message || '').toLowerCase().includes('failed to fetch');
+      const errorMsg = isFailedToFetch
+        ? '네트워크 연결 실패 (Failed to fetch). 구글 앱스 스크립트 배포 시 [액세스 권한]이 "모든 사용자(Anyone)"로 설정되어 있는지, URL 끝이 "/exec"인지 확인해주세요!'
+        : (err.message || 'URL을 확인해주세요.');
       return {
         success: false,
-        message: `구글 시트 불러오기 오류: ${err.message || 'URL을 확인해주세요.'}`,
+        message: `구글 시트 불러오기 오류: ${errorMsg}`,
       };
     }
   }
