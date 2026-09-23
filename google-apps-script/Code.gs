@@ -1,25 +1,42 @@
 /**
  * Stock Pulse - 구글 스프레드시트 양방향 연동 Apps Script
  * 
- * [설치 및 배포 방법]
- * 1. 새 구글 스프레드시트를 생성합니다.
- * 2. 상단 메뉴 [확장 프로그램] -> [Apps Script]를 클릭합니다.
- * 3. 기존 코드를 모두 지우고 이 파일 전체 내용을 복사하여 붙여넣습니다.
- * 4. 오른쪽 상단 [배포] -> [새 배포] 클릭
+ * [초간단 설정 방법]
+ * 1. 본인의 구글 스프레드시트 주소(URL) 전체를 아래 SPREADSHEET_URL의 따옴표 안에 붙여넣으세요!
+ *    (스프레드시트 주소창에 있는 https://docs.google.com/spreadsheets/d/... 전체 복사)
+ * 2. 상단 메뉴 [배포] -> [새 배포] 클릭
  *    - 유형: [웹 앱] 선택
- *    - 설명: Stock Pulse 연동
- *    - 다음 사용자 권한으로 실행: [나] (본인 구글 계정)
- *    - 액세스 권한이 있는 사용자: [모든 사용자] (Anyone) 선택 ★ 중요!
- * 5. [배포] 버튼을 누르고 권한을 승인합니다.
- * 6. 생성된 '웹 앱 URL'(https://script.google.com/macros/s/.../exec)을 복사하여 Stock Pulse 앱에 등록합니다.
+ *    - 액세스 권한: [모든 사용자(Anyone)] 선택 ★ 중요!
+ * 3. [배포] 버튼을 누르고 권한 승인 후 나온 '웹 앱 URL'을 복사하여 앱에 넣으시면 끝납니다.
  */
 
+// ★ 본인의 구글 스프레드시트 주소를 아래 따옴표 안에 붙여넣으세요!
+// 예시: const SPREADSHEET_URL = "https://docs.google.com/spreadsheets/d/1abcXYZ.../edit";
+const SPREADSHEET_URL = ""; 
+
 const SHEET_NAME = '포트폴리오';
+
+// 스프레드시트 객체를 안전하게 가져오는 함수
+function getSpreadsheet() {
+  // 1. SPREADSHEET_URL이 지정되어 있으면 해당 시트를 직접 오픈 (100% 안전)
+  if (typeof SPREADSHEET_URL === 'string' && SPREADSHEET_URL.trim() !== "") {
+    const raw = SPREADSHEET_URL.trim();
+    const match = raw.match(/\/d\/([a-zA-Z0-9-_]+)/);
+    const id = match ? match[1] : raw;
+    return SpreadsheetApp.openById(id);
+  }
+
+  // 2. 바운드 스크립트인 경우 Active Spreadsheet 자동 감지
+  const active = SpreadsheetApp.getActiveSpreadsheet() || SpreadsheetApp.getActive();
+  if (active) return active;
+
+  throw new Error("스프레드시트를 찾을 수 없습니다. Code.gs 파일 상단의 SPREADSHEET_URL 변수 따옴표 안에 본인 구글 시트 주소 전체를 붙여넣고 다시 배포해주세요!");
+}
 
 // GET 요청 처리: 시트에 저장된 주식 목록 반환
 function doGet(e) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = getSpreadsheet();
     let sheet = ss.getSheetByName(SHEET_NAME);
     if (!sheet) {
       sheet = initSheet(ss);
@@ -88,7 +105,7 @@ function doPost(e) {
 
     if (action === 'save_portfolio') {
       const positions = payload.positions || [];
-      const ss = SpreadsheetApp.getActiveSpreadsheet();
+      const ss = getSpreadsheet();
       let sheet = ss.getSheetByName(SHEET_NAME);
       if (!sheet) {
         sheet = initSheet(ss);
@@ -161,7 +178,10 @@ function doPost(e) {
 
 // 시트 초기화 헬퍼
 function initSheet(ss) {
-  let sheet = ss.insertSheet(SHEET_NAME);
+  let sheet = ss.getSheetByName(SHEET_NAME);
+  if (!sheet) {
+    sheet = ss.insertSheet(SHEET_NAME);
+  }
   sheet.appendRow([
     '종목코드',
     '종목명',

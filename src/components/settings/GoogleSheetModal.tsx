@@ -13,13 +13,26 @@ interface GoogleSheetModalProps {
 
 const APPS_SCRIPT_SNIPPET = `/**
  * Stock Pulse - 구글 스프레드시트 양방향 연동 Apps Script
- * [배포방법] 구글시트 -> 확장프로그램 -> Apps Script -> 붙여넣기 -> 배포 -> 새배포(웹앱, 나, 모든사용자)
+ * [설정] 아래 SPREADSHEET_URL에 본인 구글 시트 주소를 넣으시면 100% 안전하게 동작합니다!
  */
+const SPREADSHEET_URL = ""; // 예: "https://docs.google.com/spreadsheets/d/.../edit"
 const SHEET_NAME = '포트폴리오';
+
+function getSpreadsheet() {
+  if (typeof SPREADSHEET_URL === 'string' && SPREADSHEET_URL.trim() !== "") {
+    const raw = SPREADSHEET_URL.trim();
+    const match = raw.match(/\\/d\\/([a-zA-Z0-9-_]+)/);
+    const id = match ? match[1] : raw;
+    return SpreadsheetApp.openById(id);
+  }
+  const active = SpreadsheetApp.getActiveSpreadsheet() || SpreadsheetApp.getActive();
+  if (active) return active;
+  throw new Error("시트를 찾을 수 없습니다. SPREADSHEET_URL에 구글 시트 주소를 입력해주세요.");
+}
 
 function doGet(e) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = getSpreadsheet();
     let sheet = ss.getSheetByName(SHEET_NAME);
     if (!sheet) sheet = initSheet(ss);
     const data = sheet.getDataRange().getValues();
@@ -62,7 +75,7 @@ function doPost(e) {
     if (action === 'load_portfolio') return doGet(e);
     if (action === 'save_portfolio') {
       const positions = payload.positions || [];
-      const ss = SpreadsheetApp.getActiveSpreadsheet();
+      const ss = getSpreadsheet();
       let sheet = ss.getSheetByName(SHEET_NAME);
       if (!sheet) sheet = initSheet(ss); else sheet.clearContents();
       const headers = ['종목코드', '종목명', '수량', '평균매수가', '통화', '한도비중(%)', '투자기간', '최종저장일시'];
@@ -85,7 +98,10 @@ function doPost(e) {
 }
 
 function initSheet(ss) {
-  let sheet = ss.insertSheet(SHEET_NAME);
+  let sheet = ss.getSheetByName(SHEET_NAME);
+  if (!sheet) {
+    sheet = ss.insertSheet(SHEET_NAME);
+  }
   sheet.appendRow(['종목코드', '종목명', '수량', '평균매수가', '통화', '한도비중(%)', '투자기간', '최종저장일시']);
   sheet.getRange(1, 1, 1, 8).setBackground('#2563EB').setFontColor('#FFFFFF').setFontWeight('bold');
   return sheet;
