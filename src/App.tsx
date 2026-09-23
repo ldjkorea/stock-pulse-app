@@ -121,7 +121,7 @@ export function App() {
   // 3. 메인 탭 화면
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col">
-      {/* 상단 공통 헤더 */}
+      {/* 상단 공통 헤더 (모바일 + PC GNB 내비게이션 통합) */}
       <Header
         theme={theme}
         onToggleTheme={toggleTheme}
@@ -130,10 +130,12 @@ export function App() {
         onOpenSettings={() => setActiveTab('settings')}
         onOpenInstallModal={() => setIsInstallModalOpen(true)}
         onOpenSmartImport={() => setIsSmartModalOpen(true)}
+        activeTab={activeTab}
+        onChangeTab={setActiveTab}
       />
 
       {/* 탭별 뷰 컨텐츠 */}
-      <main className="flex-1">
+      <main className="flex-1 pb-16 md:pb-8">
         {activeTab === 'feed' && (
           <FeedView
             positions={enrichedPositions}

@@ -44,7 +44,7 @@ export const FeedView: React.FC<FeedViewProps> = ({
     });
 
   return (
-    <div className="max-w-xl mx-auto px-4 py-4 pb-24">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 pb-24 md:pb-12">
       {/* 1. 상단 요약 바 & 실시간 체결 시세 컨트롤 */}
       <FeedHeader
         importantChangesCount={importantChangesCount}
@@ -80,12 +80,12 @@ export const FeedView: React.FC<FeedViewProps> = ({
             className="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center gap-1 shadow-sm transition-all flex-shrink-0"
           >
             <Sparkles className="w-3.5 h-3.5" />
-            스마트 등록
+            <span>스마트 등록</span>
           </button>
         </div>
       )}
 
-      {/* 2. 포트폴리오 카드 피드 */}
+      {/* 2. 포트폴리오 카드 피드: 모바일 1열 / 태블릿 2열 / PC 와이드 3열 그리드 */}
       {positions.length === 0 ? (
         <div className="text-center py-16 px-4 bg-white dark:bg-slate-900 rounded-3xl border border-dashed border-slate-300 dark:border-slate-800">
           <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
@@ -103,7 +103,7 @@ export const FeedView: React.FC<FeedViewProps> = ({
           </button>
         </div>
       ) : (
-        <div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {positions.map((item) => (
             <StockCard
               key={item.id}

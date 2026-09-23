@@ -29,7 +29,7 @@ export const AlertsView: React.FC<AlertsViewProps> = ({
   };
 
   return (
-    <div className="max-w-xl mx-auto px-4 py-4 pb-24">
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4 pb-24 md:pb-12">
       {/* 알림 헤더 */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">

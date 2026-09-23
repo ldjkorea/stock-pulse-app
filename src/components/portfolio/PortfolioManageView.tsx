@@ -144,7 +144,7 @@ export const PortfolioManageView: React.FC<PortfolioManageViewProps> = ({
   const isProfit = totalProfit >= 0;
 
   return (
-    <div className="max-w-xl mx-auto px-4 py-4 pb-24">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 pb-24 md:pb-12">
       {/* 헤더 */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
@@ -353,7 +353,7 @@ export const PortfolioManageView: React.FC<PortfolioManageViewProps> = ({
       )}
 
       {/* 보유 종목 리스트 */}
-      <div className="space-y-3">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
         {positions.map((pos) => {
           const sym = SUPPORTED_SYMBOLS.find((s) => s.id === pos.symbol_id);
           const isEditing = editingId === pos.id;

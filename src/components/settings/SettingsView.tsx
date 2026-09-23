@@ -25,7 +25,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 }) => {
   const tossCreds = tossApiService.getCredentials();
   return (
-    <div className="max-w-xl mx-auto px-4 py-4 pb-24 space-y-4">
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4 pb-24 md:pb-12 space-y-4">
       <div className="flex items-center gap-2 mb-4">
         <Settings className="w-5 h-5 text-blue-600 dark:text-blue-400" />
         <h1 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">
