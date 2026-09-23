@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { PieChart, Plus, Trash2, Edit2, Check, X, Search, AlertCircle, Download, Upload, ShieldCheck, Sparkles, Key } from 'lucide-react';
+import { PieChart, Plus, Trash2, Edit2, Check, X, Search, AlertCircle, Download, Upload, ShieldCheck, Sparkles, Key, Table } from 'lucide-react';
 import { EnrichedPosition } from '../../stores/portfolioStore';
 import { Position } from '../../core/types/models';
 import { SUPPORTED_SYMBOLS } from '../../mock/symbols';
@@ -19,6 +19,7 @@ interface PortfolioManageViewProps {
   onExportPortfolio?: () => void;
   onImportPortfolio?: (json: string) => { success: boolean; message: string };
   onOpenTossModal?: () => void;
+  onOpenGoogleSheetModal?: () => void;
 }
 
 export const PortfolioManageView: React.FC<PortfolioManageViewProps> = ({
@@ -34,6 +35,7 @@ export const PortfolioManageView: React.FC<PortfolioManageViewProps> = ({
   onExportPortfolio,
   onImportPortfolio,
   onOpenTossModal,
+  onOpenGoogleSheetModal,
 }) => {
   const [showAddForm, setShowAddForm] = useState(false);
   const [showSmartModal, setShowSmartModal] = useState(false);
@@ -162,6 +164,16 @@ export const PortfolioManageView: React.FC<PortfolioManageViewProps> = ({
             >
               <Key className="w-3.5 h-3.5" />
               <span>토스증권</span>
+            </button>
+          )}
+          {onOpenGoogleSheetModal && (
+            <button
+              onClick={onOpenGoogleSheetModal}
+              className="px-2.5 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 font-bold text-xs flex items-center gap-1 border border-emerald-200 dark:border-emerald-800 transition-all shadow-sm"
+              title="구글 스프레드시트 양방향 연동 & 동기화"
+            >
+              <Table className="w-3.5 h-3.5" />
+              <span>구글시트</span>
             </button>
           )}
           <button

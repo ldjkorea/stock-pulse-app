@@ -12,6 +12,7 @@ import { AlertsView } from './components/alerts/AlertsView';
 import { SettingsView } from './components/settings/SettingsView';
 import { SmartImportModal } from './components/portfolio/SmartImportModal';
 import { TossApiModal } from './components/settings/TossApiModal';
+import { GoogleSheetModal } from './components/settings/GoogleSheetModal';
 import { SUPPORTED_SYMBOLS } from './mock/symbols';
 import { defaultDataProvider } from './core/providers/mockDataProvider';
 import { StockAnalysis } from './core/types/analysis';
@@ -50,6 +51,7 @@ export function App() {
   const [isInstallModalOpen, setIsInstallModalOpen] = useState(false);
   const [isSmartModalOpen, setIsSmartModalOpen] = useState(false);
   const [isTossModalOpen, setIsTossModalOpen] = useState(false);
+  const [isGoogleSheetModalOpen, setIsGoogleSheetModalOpen] = useState(false);
 
   // 스마트 일괄 등록 처리
   const handleSmartBatchImport = (newPositions: Parameters<typeof addPosition>[0][]) => {
@@ -61,6 +63,13 @@ export function App() {
   // 토스증권 잔고 동기화 완료 처리
   const handleTossSyncComplete = (newPositions: Parameters<typeof addPosition>[0][]) => {
     newPositions.forEach((pos) => {
+      addPosition(pos);
+    });
+  };
+
+  // 구글 시트 데이터 동기화 완료 처리
+  const handleGoogleSheetSyncComplete = (importedPositions: Parameters<typeof addPosition>[0][]) => {
+    importedPositions.forEach((pos) => {
       addPosition(pos);
     });
   };
@@ -164,6 +173,7 @@ export function App() {
             onExportPortfolio={exportPortfolio}
             onImportPortfolio={importPortfolio}
             onOpenTossModal={() => setIsTossModalOpen(true)}
+            onOpenGoogleSheetModal={() => setIsGoogleSheetModalOpen(true)}
           />
         )}
 
@@ -185,6 +195,7 @@ export function App() {
             onSelectStock={handleSelectStock}
             onOpenInstallModal={() => setIsInstallModalOpen(true)}
             onOpenTossApiModal={() => setIsTossModalOpen(true)}
+            onOpenGoogleSheetModal={() => setIsGoogleSheetModalOpen(true)}
           />
         )}
       </main>
@@ -217,6 +228,14 @@ export function App() {
         isOpen={isTossModalOpen}
         onClose={() => setIsTossModalOpen(false)}
         onSyncComplete={handleTossSyncComplete}
+      />
+
+      {/* 구글 스프레드시트 양방향 연동 & 동기화 모달 */}
+      <GoogleSheetModal
+        isOpen={isGoogleSheetModalOpen}
+        onClose={() => setIsGoogleSheetModalOpen(false)}
+        currentPositions={enrichedPositions}
+        onSyncComplete={handleGoogleSheetSyncComplete}
       />
     </div>
   );

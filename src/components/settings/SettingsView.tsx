@@ -1,8 +1,9 @@
-import { Settings, Moon, Sun, RotateCcw, Smartphone, Layers, Cpu, ShieldCheck, Wifi, ExternalLink, Key, CheckCircle2 } from 'lucide-react';
+import { Settings, Moon, Sun, RotateCcw, Smartphone, Layers, Cpu, ShieldCheck, Wifi, ExternalLink, Key, CheckCircle2, Table } from 'lucide-react';
 import { ThemeMode } from '../../stores/themeStore';
 import { CURRENT_SCORE_MODEL_VERSION } from '../../core/engine/weights';
 import { SUPPORTED_SYMBOLS } from '../../mock/symbols';
 import { tossApiService } from '../../core/services/tossApiService';
+import { googleSheetsService } from '../../core/services/googleSheetsService';
 
 interface SettingsViewProps {
   theme: ThemeMode;
@@ -12,6 +13,7 @@ interface SettingsViewProps {
   onSelectStock: (symbolId: string) => void;
   onOpenInstallModal: () => void;
   onOpenTossApiModal?: () => void;
+  onOpenGoogleSheetModal?: () => void;
 }
 
 export const SettingsView: React.FC<SettingsViewProps> = ({
@@ -22,8 +24,10 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   onSelectStock,
   onOpenInstallModal,
   onOpenTossApiModal,
+  onOpenGoogleSheetModal,
 }) => {
   const tossCreds = tossApiService.getCredentials();
+  const googleSheetUrl = googleSheetsService.getWebAppUrl();
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4 pb-24 md:pb-12 space-y-4">
       <div className="flex items-center gap-2 mb-4">
@@ -106,6 +110,44 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             className="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm transition-all shrink-0"
           >
             {tossCreds ? '관리' : '연동하기'}
+          </button>
+        )}
+      </div>
+
+      {/* 0.6 구글 스프레드시트 양방향 실시간 연동 */}
+      <div className="p-4 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800/90 shadow-sm flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-2xl bg-emerald-600/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold">
+            <Table className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h2 className="text-sm font-bold text-slate-900 dark:text-white">
+                구글 스프레드시트 연동
+              </h2>
+              {googleSheetUrl ? (
+                <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                  <CheckCircle2 className="w-3 h-3" /> 연동 활성화
+                </span>
+              ) : (
+                <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400">
+                  미연동
+                </span>
+              )}
+            </div>
+            <p className="text-[11px] text-slate-400 mt-0.5">
+              {googleSheetUrl
+                ? '내 구글 시트로 주식 데이터 저장 및 불러오기 동기화 가능'
+                : 'Google Apps Script Web App URL을 등록하여 시트와 양방향 동기화'}
+            </p>
+          </div>
+        </div>
+        {onOpenGoogleSheetModal && (
+          <button
+            onClick={onOpenGoogleSheetModal}
+            className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm transition-all shrink-0"
+          >
+            {googleSheetUrl ? '동기화 관리' : '연동하기'}
           </button>
         )}
       </div>
