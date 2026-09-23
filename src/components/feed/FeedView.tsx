@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { EnrichedPosition } from '../../stores/portfolioStore';
-import { FeedHeader } from './FeedHeader';
+import { FeedHeader, ImportantChangeItem } from './FeedHeader';
 import { StockCard } from './StockCard';
 import { PlusCircle, Sparkles } from 'lucide-react';
+import { SUPPORTED_SYMBOLS } from '../../mock/symbols';
 
 interface FeedViewProps {
   positions: EnrichedPosition[];
@@ -30,10 +31,24 @@ export const FeedView: React.FC<FeedViewProps> = ({
 }) => {
   const [isSystemDelayed, setIsSystemDelayed] = useState(false);
 
-  // 중요 변화가 있는 종목 수 (점수 변화가 0이 아니거나 특정 이슈 있는 종목)
-  const importantChangesCount = positions.filter(
-    (p) => (p.analysis?.score_change !== undefined && Math.abs(p.analysis.score_change) >= 0.5)
-  ).length;
+  // 중요 변화가 있는 종목 추출 (점수 변화가 유의미하게 발생한 종목)
+  const importantChangeItems: ImportantChangeItem[] = positions
+    .filter(
+      (p) => p.analysis?.score_change !== undefined && Math.abs(p.analysis.score_change) >= 0.3
+    )
+    .map((p) => {
+      const sym = SUPPORTED_SYMBOLS.find((s) => s.id === p.symbol_id);
+      return {
+        symbolId: p.symbol_id,
+        nameKo: sym?.name_ko || p.symbol_id,
+        ticker: sym?.ticker || p.symbol_id,
+        scoreChange: p.analysis!.score_change!,
+        currentScore: p.analysis!.total_score,
+        reason: p.analysis!.score_change_reason_ko || p.analysis!.thesis?.headline || '펀더멘털 및 시장 기대 변동 감지',
+      };
+    });
+
+  const importantChangesCount = importantChangeItems.length;
 
   // 현재 시각 기준 마지막 정상 확인 시각 (최신 갱신 시간 또는 직전 5분 전)
   const dynamicLastCheckedTime =
@@ -48,6 +63,8 @@ export const FeedView: React.FC<FeedViewProps> = ({
       {/* 1. 상단 요약 바 & 실시간 체결 시세 컨트롤 */}
       <FeedHeader
         importantChangesCount={importantChangesCount}
+        importantChanges={importantChangeItems}
+        onSelectStock={onSelectStock}
         analyzedStocksCount={positions.length}
         lastCheckedTime={dynamicLastCheckedTime}
         isSystemDelayed={isSystemDelayed}

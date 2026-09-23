@@ -1,5 +1,14 @@
-import React from 'react';
-import { Sparkles, CheckCircle, AlertTriangle, RefreshCw, Activity, Zap } from 'lucide-react';
+import React, { useState } from 'react';
+import { Sparkles, CheckCircle, AlertTriangle, RefreshCw, Activity, Zap, ChevronDown, ChevronRight } from 'lucide-react';
+
+export interface ImportantChangeItem {
+  symbolId: string;
+  nameKo: string;
+  ticker: string;
+  scoreChange: number;
+  currentScore: number;
+  reason: string;
+}
 
 interface FeedHeaderProps {
   importantChangesCount: number;
@@ -13,6 +22,9 @@ interface FeedHeaderProps {
   lastRefreshedTime?: string;
   onRefreshMarketPrices?: () => void;
   onToggleLiveStreaming?: () => void;
+  // 중요 변화 종목 목록 및 상세 이동
+  importantChanges?: ImportantChangeItem[];
+  onSelectStock?: (symbolId: string) => void;
 }
 
 export const FeedHeader: React.FC<FeedHeaderProps> = ({
@@ -26,7 +38,10 @@ export const FeedHeader: React.FC<FeedHeaderProps> = ({
   lastRefreshedTime,
   onRefreshMarketPrices,
   onToggleLiveStreaming,
+  importantChanges,
+  onSelectStock,
 }) => {
+  const [isExpanded, setIsExpanded] = useState(true);
   return (
     <div className="mb-5 space-y-3">
       {/* 1. 최상단 실시간 금융 시세 연동 LIVE 컨트롤 바 */}
@@ -132,18 +147,73 @@ export const FeedHeader: React.FC<FeedHeaderProps> = ({
         </div>
       ) : importantChangesCount > 0 ? (
         // 중요한 변화 발생 상태
-        <div className="p-3.5 rounded-2xl bg-gradient-to-r from-blue-600/10 to-indigo-600/10 border border-blue-500/20 text-slate-800 dark:text-slate-200 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse" />
-            <div>
-              <div className="text-xs font-bold text-slate-900 dark:text-white">
-                오늘 중요한 변화 <span className="text-blue-600 dark:text-blue-400 font-extrabold">{importantChangesCount}건</span> 감지
+        <div className="p-3.5 rounded-2xl bg-gradient-to-r from-blue-600/10 to-indigo-600/10 border border-blue-500/20 text-slate-800 dark:text-slate-200">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse shrink-0" />
+              <div>
+                <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                  오늘 중요한 변화 <span className="text-blue-600 dark:text-blue-400 font-extrabold">{importantChangesCount}건</span> 감지
+                </div>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                  실적 가이던스 상향 및 수급/규제 변동 요인이 발생한 종목입니다.
+                </p>
               </div>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                실적 가이던스 상향 및 수급 변동 요인이 발생한 종목입니다.
-              </p>
             </div>
+            {importantChanges && importantChanges.length > 0 && (
+              <button
+                onClick={() => setIsExpanded(!isExpanded)}
+                className="px-2.5 py-1 rounded-xl bg-white/80 dark:bg-slate-800/80 hover:bg-white dark:hover:bg-slate-800 text-blue-600 dark:text-blue-400 text-xs font-bold flex items-center gap-1 border border-blue-200 dark:border-blue-900/60 shadow-xs transition-all shrink-0"
+              >
+                <span>{isExpanded ? '접기' : '상세보기'}</span>
+                <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
+              </button>
+            )}
           </div>
+
+          {/* 감지된 중요 변화 종목 요약 리스트 */}
+          {isExpanded && importantChanges && importantChanges.length > 0 && (
+            <div className="mt-3 pt-3 border-t border-blue-500/15 space-y-2">
+              <div className="text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1 flex items-center justify-between">
+                <span>변화 감지 종목 ({importantChanges.length}개)</span>
+                <span className="text-[10px] text-slate-400 font-normal">카드를 누르면 상세 분석으로 이동합니다</span>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                {importantChanges.map((item) => (
+                  <div
+                    key={item.symbolId}
+                    onClick={() => onSelectStock?.(item.symbolId)}
+                    className="p-2.5 rounded-xl bg-white/90 dark:bg-slate-900/90 border border-slate-200/90 dark:border-slate-800/90 hover:border-blue-400 dark:hover:border-blue-500 transition-all cursor-pointer flex items-start justify-between gap-2 shadow-xs group"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <span className="font-extrabold text-xs text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                          {item.nameKo}
+                        </span>
+                        <span className="text-[10px] font-mono text-slate-400">
+                          {item.ticker}
+                        </span>
+                        <span
+                          className={`text-[10px] font-bold px-1.5 py-0.2 rounded ${
+                            item.scoreChange > 0
+                              ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
+                              : 'bg-blue-500/10 text-blue-600 dark:text-blue-400'
+                          }`}
+                        >
+                          {item.scoreChange > 0 ? `+${item.scoreChange}` : item.scoreChange}점
+                          ({(item.currentScore - item.scoreChange).toFixed(1)} → {item.currentScore.toFixed(1)})
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-600 dark:text-slate-300 leading-snug line-clamp-2">
+                        {item.reason}
+                      </p>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-slate-300 dark:text-slate-600 group-hover:text-blue-500 transition-colors shrink-0 mt-0.5" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       ) : (
         // 변화 없음 (안정 상태)
