@@ -98,6 +98,50 @@ export class GoogleSheetsService {
   }
 
   /**
+   * 구글 웹앱 연결 상태 사전 테스트 (GET 요청)
+   */
+  public async testConnection(targetUrl?: string): Promise<{ success: boolean; message: string }> {
+    const url = (targetUrl || this.getWebAppUrl()).trim();
+    if (!url) {
+      return { success: false, message: '테스트할 웹앱 URL이 입력되지 않았습니다.' };
+    }
+
+    try {
+      const response = await fetch(url, {
+        method: 'GET',
+        cache: 'no-store',
+      });
+
+      if (!response.ok) {
+        throw new Error(`구글 서버 응답 코드: ${response.status}`);
+      }
+
+      const resJson = await response.json();
+      if (resJson && resJson.success !== undefined) {
+        return {
+          success: true,
+          message: '구글 웹앱과 성공적으로 연결되었습니다! 저장 및 불러오기가 가능합니다.',
+        };
+      }
+
+      return {
+        success: true,
+        message: '구글 웹앱 응답을 수신했습니다.',
+      };
+    } catch (err: any) {
+      console.error('웹앱 연결 테스트 실패:', err);
+      const isFailedToFetch = String(err?.message || '').toLowerCase().includes('failed to fetch');
+      const errorMsg = isFailedToFetch
+        ? '연결 실패 (Failed to fetch). 구글 배포 설정에서 [액세스 권한: 모든 사용자(Anyone)] 및 [액세스 승인] 허용이 완료되었는지 확인해주세요!'
+        : (err.message || '네트워크 연결 실패');
+      return {
+        success: false,
+        message: errorMsg,
+      };
+    }
+  }
+
+  /**
    * 현재 포트폴리오를 구글 시트로 내보내기/저장
    */
   public async exportToGoogleSheet(positions: (Position | EnrichedPosition)[]): Promise<GoogleSheetSyncResult> {

@@ -122,6 +122,7 @@ export const GoogleSheetModal: React.FC<GoogleSheetModalProps> = ({
   const [spreadsheetDocUrl, setSpreadsheetDocUrl] = useState('');
   const [lastSynced, setLastSynced] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isTesting, setIsTesting] = useState(false);
   const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [isCopied, setIsCopied] = useState(false);
 
@@ -195,6 +196,27 @@ export const GoogleSheetModal: React.FC<GoogleSheetModalProps> = ({
       }
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // 구글 웹앱 연결 테스트
+  const handleTestConnection = async (targetUrl?: string) => {
+    const testUrl = targetUrl || webAppUrl;
+    if (!testUrl.trim()) {
+      setStatusMessage({ type: 'error', text: '테스트할 웹앱 URL이 없습니다.' });
+      return;
+    }
+    setIsTesting(true);
+    setStatusMessage(null);
+    try {
+      const res = await googleSheetsService.testConnection(testUrl);
+      if (res.success) {
+        setStatusMessage({ type: 'success', text: res.message });
+      } else {
+        setStatusMessage({ type: 'error', text: res.message });
+      }
+    } finally {
+      setIsTesting(false);
     }
   };
 
@@ -298,6 +320,27 @@ export const GoogleSheetModal: React.FC<GoogleSheetModalProps> = ({
                     <div className="text-[11px] font-mono text-slate-400 truncate bg-white dark:bg-slate-900 p-2 rounded-xl border border-slate-100 dark:border-slate-800">
                       {webAppUrl}
                     </div>
+                    <div className="flex items-center justify-between mt-2 pt-1 border-t border-slate-200/50 dark:border-slate-800 text-[11px]">
+                      <a
+                        href={webAppUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 font-semibold"
+                        title="새 탭에서 열어 정상 응답(JSON)이 나오는지 확인합니다"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" />
+                        새 탭에서 URL 열어보기 (자가진단)
+                      </a>
+                      <button
+                        type="button"
+                        onClick={() => handleTestConnection()}
+                        disabled={isTesting}
+                        className="text-emerald-600 dark:text-emerald-400 hover:underline font-bold flex items-center gap-1"
+                      >
+                        {isTesting && <RefreshCw className="w-3 h-3 animate-spin" />}
+                        연결 테스트
+                      </button>
+                    </div>
                     {lastSynced && (
                       <div className="text-[11px] text-slate-400 mt-2">
                         마지막 동기화 일시: <strong className="text-slate-600 dark:text-slate-300">{lastSynced}</strong>
@@ -389,6 +432,29 @@ export const GoogleSheetModal: React.FC<GoogleSheetModalProps> = ({
                     onChange={(e) => setWebAppUrl(e.target.value)}
                     className="w-full p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-mono text-[11px]"
                   />
+                  {webAppUrl && (
+                    <div className="flex items-center justify-between mt-1.5 text-[11px]">
+                      <a
+                        href={webAppUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 font-semibold"
+                        title="새 탭에서 열었을 때 JSON 글씨가 나오면 정상, 로그인창이 나오면 '모든 사용자' 권한 설정 필요"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" />
+                        새 탭에서 URL 열어보기 (자가진단)
+                      </a>
+                      <button
+                        type="button"
+                        onClick={() => handleTestConnection(webAppUrl)}
+                        disabled={isTesting}
+                        className="text-emerald-600 dark:text-emerald-400 hover:underline font-bold flex items-center gap-1"
+                      >
+                        {isTesting && <RefreshCw className="w-3 h-3 animate-spin" />}
+                        연결 테스트
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 <div>
@@ -443,10 +509,7 @@ export const GoogleSheetModal: React.FC<GoogleSheetModalProps> = ({
 
                 <ol className="space-y-2 text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-900 p-3.5 rounded-2xl border border-slate-200/80 dark:border-slate-800 list-decimal list-inside leading-relaxed text-[11px]">
                   <li>
-                    구글 드라이브에서 <strong>새 구글 스프레드시트</strong>를 엽니다.
-                  </li>
-                  <li>
-                    상단 메뉴 <strong>[확장 프로그램] → [Apps Script]</strong>를 클릭합니다.
+                    구글 스프레드시트 상단 메뉴 <strong>[확장 프로그램] → [Apps Script]</strong>를 엽니다.
                   </li>
                   <li>
                     기존 내용을 지우고 우측 상단의 <strong>[스크립트 코드 복사]</strong> 버튼을 눌러 붙여넣습니다.
@@ -455,10 +518,13 @@ export const GoogleSheetModal: React.FC<GoogleSheetModalProps> = ({
                     오른쪽 위 <strong>[배포] → [새 배포]</strong>를 누르고, 톱니바퀴에서 <strong>웹 앱</strong>을 선택합니다.
                   </li>
                   <li>
-                    <strong>액세스 권한: [모든 사용자(Anyone)]</strong>로 설정 후 <strong>[배포]</strong> 버튼을 누릅니다.
+                    <strong>액세스 권한: [모든 사용자(Anyone)]</strong>로 설정 후 <strong>[배포]</strong> 버튼을 누릅니다. ★
                   </li>
                   <li>
-                    발급된 <strong>웹 앱 URL</strong>을 복사하여 위 입력칸에 넣고 저장하면 끝납니다!
+                    <strong>[액세스 승인]</strong> 팝업 시: 내 구글 계정 선택 ➔ [고급] 클릭 ➔ 맨 아래 <strong>[... 이동(안전하지 않음)]</strong> ➔ <strong>[허용]</strong> 클릭! ★
+                  </li>
+                  <li>
+                    완료 화면에 나온 <strong>웹 앱 URL</strong>(끝이 <code>/exec</code>)을 복사해 1번에 넣고 저장하면 끝납니다!
                   </li>
                 </ol>
               </div>
