@@ -3,6 +3,7 @@ import { SUPPORTED_SYMBOLS } from '../../mock/symbols';
 import { EnrichedPosition } from '../../stores/portfolioStore';
 
 const STORAGE_KEY_GOOGLE_SHEET_URL = 'stock_pulse_google_sheet_url_v1';
+const STORAGE_KEY_SPREADSHEET_DOC_URL = 'stock_pulse_spreadsheet_doc_url_v1';
 const STORAGE_KEY_LAST_SYNCED = 'stock_pulse_google_sheet_last_synced_v1';
 
 export interface GoogleSheetSyncResult {
@@ -46,10 +47,31 @@ export class GoogleSheetsService {
   }
 
   /**
+   * 저장된 구글 스프레드시트 주소(URL) 조회
+   */
+  public getSpreadsheetDocUrl(): string {
+    try {
+      return localStorage.getItem(STORAGE_KEY_SPREADSHEET_DOC_URL) || '';
+    } catch (e) {
+      console.error(e);
+      return '';
+    }
+  }
+
+  /**
+   * 구글 스프레드시트 주소(URL) 저장
+   */
+  public saveSpreadsheetDocUrl(url: string): void {
+    const trimmed = url.trim();
+    localStorage.setItem(STORAGE_KEY_SPREADSHEET_DOC_URL, trimmed);
+  }
+
+  /**
    * Web App URL 삭제
    */
   public clearWebAppUrl(): void {
     localStorage.removeItem(STORAGE_KEY_GOOGLE_SHEET_URL);
+    localStorage.removeItem(STORAGE_KEY_SPREADSHEET_DOC_URL);
     localStorage.removeItem(STORAGE_KEY_LAST_SYNCED);
   }
 
@@ -109,6 +131,7 @@ export class GoogleSheetsService {
           action: 'save_portfolio',
           payload: {
             positions: payloadPositions,
+            sheet_url: this.getSpreadsheetDocUrl(),
           },
         }),
         redirect: 'follow',
@@ -150,10 +173,18 @@ export class GoogleSheetsService {
     }
 
     try {
-      // GET 요청을 통한 시트 데이터 조회
-      const queryUrl = url.includes('?') ? `${url}&action=load_portfolio` : `${url}?action=load_portfolio`;
-      const response = await fetch(queryUrl, {
-        method: 'GET',
+      // POST 요청을 통해 sheet_url과 함께 load_portfolio 액션 전송
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'text/plain;charset=utf-8',
+        },
+        body: JSON.stringify({
+          action: 'load_portfolio',
+          payload: {
+            sheet_url: this.getSpreadsheetDocUrl(),
+          },
+        }),
         redirect: 'follow',
       });
 

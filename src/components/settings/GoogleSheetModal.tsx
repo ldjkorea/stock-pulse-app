@@ -119,6 +119,7 @@ export const GoogleSheetModal: React.FC<GoogleSheetModalProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<'sync' | 'setup'>('sync');
   const [webAppUrl, setWebAppUrl] = useState('');
+  const [spreadsheetDocUrl, setSpreadsheetDocUrl] = useState('');
   const [lastSynced, setLastSynced] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -127,7 +128,9 @@ export const GoogleSheetModal: React.FC<GoogleSheetModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       const savedUrl = googleSheetsService.getWebAppUrl();
+      const savedDocUrl = googleSheetsService.getSpreadsheetDocUrl();
       setWebAppUrl(savedUrl);
+      setSpreadsheetDocUrl(savedDocUrl);
       setLastSynced(googleSheetsService.getLastSyncedTime());
       setStatusMessage(null);
       if (!savedUrl) {
@@ -142,19 +145,21 @@ export const GoogleSheetModal: React.FC<GoogleSheetModalProps> = ({
 
   const handleSaveUrl = () => {
     if (!webAppUrl.trim()) {
-      setStatusMessage({ type: 'error', text: 'URL을 입력해주세요.' });
+      setStatusMessage({ type: 'error', text: '웹 앱 URL을 입력해주세요.' });
       return;
     }
     googleSheetsService.saveWebAppUrl(webAppUrl);
-    setStatusMessage({ type: 'success', text: '구글 시트 URL이 성공적으로 저장되었습니다!' });
+    googleSheetsService.saveSpreadsheetDocUrl(spreadsheetDocUrl);
+    setStatusMessage({ type: 'success', text: '구글 시트 연동 정보가 성공적으로 저장되었습니다!' });
     setActiveTab('sync');
   };
 
   const handleClearUrl = () => {
     googleSheetsService.clearWebAppUrl();
     setWebAppUrl('');
+    setSpreadsheetDocUrl('');
     setLastSynced(null);
-    setStatusMessage({ type: 'success', text: '등록된 연동 URL이 삭제되었습니다.' });
+    setStatusMessage({ type: 'success', text: '등록된 연동 정보가 삭제되었습니다.' });
     setActiveTab('setup');
   };
 
@@ -373,22 +378,41 @@ export const GoogleSheetModal: React.FC<GoogleSheetModalProps> = ({
             <div className="space-y-4 text-xs">
               {/* URL 등록 폼 */}
               <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-800 space-y-3">
-                <label className="font-bold text-slate-800 dark:text-slate-200 block">
-                  구글 시트 Web App 배포 URL
-                </label>
-                <input
-                  type="text"
-                  placeholder="https://script.google.com/macros/s/.../exec"
-                  value={webAppUrl}
-                  onChange={(e) => setWebAppUrl(e.target.value)}
-                  className="w-full p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-mono text-[11px]"
-                />
-                <div className="flex gap-2">
+                <div>
+                  <label className="font-bold text-slate-800 dark:text-slate-200 block mb-1">
+                    1. 구글 시트 Web App 배포 URL <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="https://script.google.com/macros/s/.../exec"
+                    value={webAppUrl}
+                    onChange={(e) => setWebAppUrl(e.target.value)}
+                    className="w-full p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-mono text-[11px]"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-bold text-slate-800 dark:text-slate-200 block mb-1">
+                    2. 내 구글 스프레드시트 주소 (시트 URL 전체)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="https://docs.google.com/spreadsheets/d/.../edit"
+                    value={spreadsheetDocUrl}
+                    onChange={(e) => setSpreadsheetDocUrl(e.target.value)}
+                    className="w-full p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-mono text-[11px]"
+                  />
+                  <p className="text-[10px] text-slate-400 mt-1">
+                    스프레드시트 주소를 넣어두시면 스크립트가 어느 시트인지 100% 찾아 저장합니다.
+                  </p>
+                </div>
+
+                <div className="flex gap-2 pt-1">
                   <button
                     onClick={handleSaveUrl}
                     className="flex-1 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm transition-all"
                   >
-                    URL 등록 및 저장
+                    연동 정보 저장
                   </button>
                   {webAppUrl && (
                     <button
