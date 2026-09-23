@@ -221,19 +221,17 @@ export class GoogleSheetsService {
     }
 
     try {
-      // POST 요청을 통해 sheet_url과 함께 load_portfolio 액션 전송
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'text/plain;charset=utf-8',
-        },
-        body: JSON.stringify({
-          action: 'load_portfolio',
-          payload: {
-            sheet_url: this.getSpreadsheetDocUrl(),
-          },
-        }),
-        redirect: 'follow',
+      // 1. GET 방식으로 먼저 요청 (브라우저 주소창과 동일하여 100% 신뢰성)
+      let fetchUrl = url;
+      const docUrl = this.getSpreadsheetDocUrl();
+      if (docUrl) {
+        const separator = fetchUrl.includes('?') ? '&' : '?';
+        fetchUrl = `${fetchUrl}${separator}sheet_url=${encodeURIComponent(docUrl)}`;
+      }
+
+      const response = await fetch(fetchUrl, {
+        method: 'GET',
+        cache: 'no-store',
       });
 
       if (!response.ok) {
