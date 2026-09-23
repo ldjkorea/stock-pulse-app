@@ -148,7 +148,21 @@ export function usePortfolioStore() {
   const [positions, setPositions] = useState<Position[]>(() => {
     try {
       const saved = localStorage.getItem(LOCAL_STORAGE_KEY_POSITIONS);
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        const parsed: Position[] = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          // 중복 symbol_id 자동 정제 (중복 종목 단일화)
+          const seen = new Set<string>();
+          const deduped: Position[] = [];
+          for (const pos of parsed) {
+            if (!seen.has(pos.symbol_id)) {
+              seen.add(pos.symbol_id);
+              deduped.push(pos);
+            }
+          }
+          return deduped;
+        }
+      }
     } catch (e) {
       console.error(e);
     }
@@ -335,17 +349,33 @@ export function usePortfolioStore() {
     setAlerts((prev) => prev.map((a) => ({ ...a, is_read: true })));
   };
 
-  // 포지션 CRUD
+  // 포지션 CRUD (동일 종목 중복 방지 upsert)
   const addPosition = (newPos: Omit<Position, 'id' | 'created_at' | 'updated_at'>) => {
     const sym = SUPPORTED_SYMBOLS.find((s) => s.id === newPos.symbol_id);
-    const created: Position = {
-      ...newPos,
-      currency: sym?.currency || newPos.currency || 'USD',
-      id: `POS_${Date.now()}`,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
-    setPositions((prev) => [...prev, created]);
+    setPositions((prev) => {
+      const existingIdx = prev.findIndex((p) => p.symbol_id === newPos.symbol_id);
+      if (existingIdx >= 0) {
+        const updated = [...prev];
+        updated[existingIdx] = {
+          ...updated[existingIdx],
+          quantity: newPos.quantity,
+          average_cost: newPos.average_cost,
+          target_max_weight_percent: newPos.target_max_weight_percent ?? updated[existingIdx].target_max_weight_percent,
+          investment_horizon: newPos.investment_horizon ?? updated[existingIdx].investment_horizon,
+          currency: sym?.currency || newPos.currency || updated[existingIdx].currency || 'USD',
+          updated_at: new Date().toISOString(),
+        };
+        return updated;
+      }
+      const created: Position = {
+        ...newPos,
+        currency: sym?.currency || newPos.currency || 'USD',
+        id: `POS_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      return [...prev, created];
+    });
   };
 
   const updatePosition = (id: string, updates: Partial<Position>) => {

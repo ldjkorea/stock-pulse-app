@@ -31,8 +31,17 @@ export const FeedView: React.FC<FeedViewProps> = ({
 }) => {
   const [isSystemDelayed, setIsSystemDelayed] = useState(false);
 
+  // 중복 종목 자동 방어 (symbol_id 기준 고유화)
+  const uniquePositionsMap = new Map<string, EnrichedPosition>();
+  positions.forEach((p) => {
+    if (!uniquePositionsMap.has(p.symbol_id)) {
+      uniquePositionsMap.set(p.symbol_id, p);
+    }
+  });
+  const displayPositions = Array.from(uniquePositionsMap.values());
+
   // 중요 변화가 있는 종목 추출 (점수 변화가 유의미하게 발생한 종목)
-  const importantChangeItems: ImportantChangeItem[] = positions
+  const importantChangeItems: ImportantChangeItem[] = displayPositions
     .filter(
       (p) => p.analysis?.score_change !== undefined && Math.abs(p.analysis.score_change) >= 0.3
     )
@@ -103,7 +112,7 @@ export const FeedView: React.FC<FeedViewProps> = ({
       )}
 
       {/* 2. 포트폴리오 카드 피드: 모바일 1열 / 태블릿 2열 / PC 와이드 3열 그리드 */}
-      {positions.length === 0 ? (
+      {displayPositions.length === 0 ? (
         <div className="text-center py-16 px-4 bg-white dark:bg-slate-900 rounded-3xl border border-dashed border-slate-300 dark:border-slate-800">
           <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
             등록된 종목이 없습니다.
@@ -121,7 +130,7 @@ export const FeedView: React.FC<FeedViewProps> = ({
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {positions.map((item) => (
+          {displayPositions.map((item) => (
             <StockCard
               key={item.id}
               item={item}
